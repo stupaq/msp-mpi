@@ -50,7 +50,7 @@ int main(int argc, char * argv[])
 
     /* FIXME */
 
-    fprintf(stderr, "PWIR2014_Jan_Kowalski_123456 Input: (%d,%d,%d) Solution: |(%d,%d),(%d,%d)|=%lld Time: %.10f\n",
+    fprintf(stderr, "PWIR2014_Mateusz_Machalica_305678 Input: (%d,%d,%d) Solution: |(%d,%d),(%d,%d)|=%lld Time: %.10f\n",
             numRows, numColumns, seed,
             0, 0, 0, 0, 0L, 0.0f);
 
