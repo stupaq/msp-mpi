@@ -11,5 +11,5 @@
 # @ bg_size = 8
 # @ queue
 echo "Started at" `date`
-mpirun -exe msp-par.exe -np 32 -mode VN -args 1000 1000 123
+mpirun -np 32 -mode VN msp-par.exe 1000 1000 123
 echo "Finished at" `date`

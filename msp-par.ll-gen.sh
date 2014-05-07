@@ -26,6 +26,6 @@ cat <<EOF
 # @ bg_size = `echo $(($P / $C))`
 # @ queue
 echo "Started at" \`date\`
-mpirun -exe msp-par.exe -np 32 -mode ${mode} -args ${M} ${N} ${S}
+mpirun -np 32 -mode ${mode} msp-par.exe ${M} ${N} ${S}
 echo "Finished at" \`date\`
 EOF
