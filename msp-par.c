@@ -109,7 +109,7 @@ int main(int argc, char * argv[]) {
   generator = matgenNew(num_rows, num_columns, seed);
   if (generator == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix generator!\n");
-    err = 1;
+    err = 2;
     goto exit;
   }
 
@@ -126,7 +126,7 @@ int main(int argc, char * argv[]) {
   matrix_ptr = (long long*) malloc(matrix_elements * sizeof(long long));
   if (matrix_ptr == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix!\n");
-    err = 1;
+    err = 2;
     goto exit;
   }
   /* The matrix is laid out in row-major format and indexed starting from 1. */
@@ -257,7 +257,7 @@ exit:
   }
 #undef MATRIX_ARR
   free(matrix_ptr);
-  if (err) {
+  if (err == 1) {
     print_usage(argv[0]);
   }
   finalize_mpi();
