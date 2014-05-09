@@ -213,13 +213,13 @@ int main(int argc, char * argv[]) {
   {
     assert(0 < best.i && best.i <= best.k);
     assert(0 < best.j && best.j <= best.l);
-    long long sum = 0LL;
+    long long sum = 0;
     for (int i = best.i; i <= best.k; ++i) {
       for (int j = best.j; j <= best.l; ++j) {
-        sum += MATRIX_ARR(i, j);
+        sum += MATRIX_ARR(i, j) - MATRIX_ARR(i - 1, j);
       }
     }
-    //assert(sum == best.sum);
+    assert(sum == best.sum);
   }
 #endif
 
