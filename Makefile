@@ -1,6 +1,6 @@
 
 # Defines that directly influence implementation
-OPTIMIZE	?= 3
+OPTIMIZE	?= 0
 
 # Platform specific options
 ifeq ($(shell hostname), students)
