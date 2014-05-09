@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-N=${N:-1000}
 M=${M:-1000}
+N=${N:-1000}
 P=${P:-32}
 C=${C:-4}
 S=${S:-123}
@@ -23,7 +23,7 @@ cat <<EOF
 # @ notification = error
 # @ notify_user = `whoami`@students.mimuw.edu.pl
 # @ job_type = bluegene
-# @ bg_size = `echo $(($P / $C))`
+# @ bg_size = `echo $(( ($P + $C - 1) / $C ))`
 # @ queue
 echo "Started at" \`date\`
 mpirun -np 32 -mode ${mode} msp-par.exe ${M} ${N} ${S}
