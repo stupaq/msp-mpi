@@ -121,8 +121,8 @@ int main(int argc, char * argv[]) {
   }
   assert(num_rows <= num_columns);
 
-  const int matrix_elements = (num_rows + 1) * (num_columns + 1);
-  assert(matrix_elements >= (num_rows + 1) * (num_columns + 1));
+  const int matrix_elements = (num_rows + 1) * num_columns;
+  assert(matrix_elements >= (num_rows + 1) * num_columns);
   matrix_ptr = (long long*) malloc(matrix_elements * sizeof(long long));
   if (matrix_ptr == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix!\n");
@@ -130,7 +130,7 @@ int main(int argc, char * argv[]) {
     goto exit;
   }
   /* The matrix is laid out in row-major format and indexed starting from 1. */
-#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * (num_columns + 1) + (_j_)]
+#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * num_columns + (_j_ - 1)]
   if (transpose) {
     for (int j = 1; j <= num_columns; ++j) {
       for (int i = 1; i <= num_rows; ++i) {
@@ -157,13 +157,8 @@ int main(int argc, char * argv[]) {
   /* Note that the accumulation here is not very cache efficient, on the other
    * hand we do it only once and each pass (for given i and k) of Kadane's
    * algorithm uses each row O(num_columns) times. */
-  for (int j = 0; j <= num_columns; ++j) {
-    MATRIX_ARR(0, j) = 0;
-  }
-  for (int i = 1; i <= num_rows; ++i) {
-    MATRIX_ARR(i, 0) = 0;
-  }
   for (int j = 1; j <= num_columns; ++j) {
+    MATRIX_ARR(0, j) = 0;
     for (int i = 1; i <= num_rows; ++i) {
       MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
     }
