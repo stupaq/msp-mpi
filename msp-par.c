@@ -5,6 +5,7 @@
 #endif
 #if OPTIMIZE <= 1
 #define MICROPROF_ENABLE
+#define MICROPROF_IS_PROFILED (my_rank == kRootRank)
 #endif
 
 #include <assert.h>
@@ -17,11 +18,10 @@
 #include "./matgen.h"
 #include "./microprof.h"
 
-#define SWAP(x, y) do {                                                     \
-  unsigned char swap_temp[sizeof(x) == sizeof(y) ? (signed)sizeof(x) : -1]; \
-  memcpy(swap_temp, &y, sizeof(x));                                         \
-  memcpy(&y, &x, sizeof(x));                                                \
-  memcpy(&x, swap_temp, sizeof(x));                                         \
+#define SWAP_ASSIGN(_type_, _x_, _y_) do {  \
+  _type_ swap_temp = _x_;                   \
+  _x_ = _y_;                                \
+  _y_ = swap_temp;                          \
 } while(0)
 
 static inline int round_up(int x, int multiple) {
@@ -49,7 +49,7 @@ void max_partial_sum(struct PartialSum* in, struct PartialSum* inout, int* len,
 
 static inline void init_mpi(int* argc, char** argv[]) {
   MPI_Init(argc, argv);
-  int block_lengths[] = {1, 1, 1, 1, 1};
+  int block_lengths[] = { 1, 1, 1, 1, 1 };
   MPI_Aint offsets[] = {
     offsetof(struct PartialSum, sum),
     offsetof(struct PartialSum, i),
@@ -57,8 +57,8 @@ static inline void init_mpi(int* argc, char** argv[]) {
     offsetof(struct PartialSum, k),
     offsetof(struct PartialSum, l)
   };
-  MPI_Datatype types[] = {MPI_LONG_LONG_INT, MPI_INT, MPI_INT, MPI_INT,
-    MPI_INT};
+  MPI_Datatype types[] = { MPI_LONG_LONG_INT, MPI_INT, MPI_INT, MPI_INT,
+    MPI_INT };
   MPI_Type_create_struct(5, block_lengths, offsets, types, &partial_sum_t);
   MPI_Type_commit(&partial_sum_t);
   MPI_Op_create((void(*) (void*, void*, int*, int*)) max_partial_sum, true,
@@ -117,7 +117,7 @@ int main(int argc, char * argv[]) {
    * appropriately transpose input matrix (durign generation process). */
   const bool transpose = num_rows > num_columns;
   if (transpose) {
-    SWAP(num_rows, num_columns);
+    SWAP_ASSIGN(int, num_rows, num_columns);
   }
   assert(num_rows <= num_columns);
 
@@ -130,7 +130,7 @@ int main(int argc, char * argv[]) {
     goto exit;
   }
   /* The matrix is laid out in row-major format and indexed starting from 1. */
-#define MATRIX_ARR(i, j) matrix_ptr[(i) * (num_columns + 1) + (j)]
+#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * (num_columns + 1) + (_j_)]
   if (transpose) {
     for (int j = 1; j <= num_columns; ++j) {
       for (int i = 1; i <= num_rows; ++i) {
@@ -153,7 +153,7 @@ int main(int argc, char * argv[]) {
   /* We will scan subsequence of rows using Kadane's algorithm, we need to
    * detrmine sum of values in corresponding subcolumn. */
   // TODO(stupaq) parallelize
-  MICROPROF_START(column_prefix_sums);
+  MICROPROF_START(column_sums);
   /* Note that the accumulation here is not very cache efficient, on the other
    * hand we do it only once and each pass (for given i and k) of Kadane's
    * algorithm uses each row O(num_columns) times. */
@@ -168,23 +168,20 @@ int main(int argc, char * argv[]) {
       MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
     }
   }
-  MICROPROF_END(column_prefix_sums);
+  MICROPROF_END(column_sums);
 
   MICROPROF_START(kadanes_2d);
-  int best_i, best_j, best_k, best_l;
-  best_i = best_j = best_k = best_l = 1;
-  long long max_sum = MATRIX_ARR(1, 1);
-#define UPDATE_MAX_SUM(sum, i, j, k, l) \
-  if (max_sum < current) {             \
-    max_sum = current;                 \
-    best_i = i; best_j = j;             \
-    best_k = k; best_l = l;             \
+  struct PartialSum best = { MATRIX_ARR(1, 1), 1, 1, 1, 1 };
+#define UPDATE_MAX_SUM(_current_, _i_, _j_, _k_, _l_) \
+  if (best.sum < _current_) {                         \
+    best.sum = _current_;                             \
+    best.i = _i_; best.j = _j_;                       \
+    best.k = _k_; best.l = _l_;                       \
   }
 
   /* The reason for such weird dispatch is that for num_columns > 1,
    * num_columns^2 has strictly more divisors than num_columns. */
-  int dispatch = 0;
-  for (int i = 1; i <= num_rows; ++i) {
+  for (int dispatch = 0, i = 1; i <= num_rows; ++i) {
     for (int k = i; k <= num_rows; ++k) {
       assert(i > 0 && k >= i);
       dispatch++;
@@ -192,7 +189,7 @@ int main(int argc, char * argv[]) {
         dispatch = 0;
       }
       if (dispatch == my_rank) {
-#define COLUMN_SUM(j) (MATRIX_ARR(k, j) - MATRIX_ARR(i - 1, j))
+#define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
         long long current = -1, nextDiff = COLUMN_SUM(1);
         for (int j = 1, l = 1; l <= num_rows; ++l) {
           assert(j > 0 && l >= j);
@@ -212,22 +209,34 @@ int main(int argc, char * argv[]) {
 #undef UPDATE_MAX_SUM
   MICROPROF_END(kadanes_2d);
 
+#ifndef NDEBUG
+  {
+    assert(0 < best.i && best.i <= best.k);
+    assert(0 < best.j && best.j <= best.l);
+    long long sum = 0LL;
+    for (int i = best.i; i <= best.k; ++i) {
+      for (int j = best.j; j <= best.l; ++j) {
+        sum += MATRIX_ARR(i, j);
+      }
+    }
+    //assert(sum == best.sum);
+  }
+#endif
+
+  if (transpose) {
+    SWAP_ASSIGN(int, num_rows, num_columns);
+    SWAP_ASSIGN(int, best.i, best.j);
+    SWAP_ASSIGN(int, best.k, best.l);
+  }
+
+  MICROPROF_INFO("Rank %d\t |(%d,%d),(%d,%d)|=%lld\n",
+      my_rank, best.i, best.j, best.k, best.l, best.sum);
+
   MICROPROF_START(reduction);
-  struct PartialSum best_total, best_partial = {
-    max_sum,
-    best_i, best_j, best_k, best_l
-  };
-  MPI_Reduce(&best_partial, &best_total, 1, partial_sum_t, max_partial_sum_op,
+  struct PartialSum best_total;
+  MPI_Reduce(&best, &best_total, 1, partial_sum_t, max_partial_sum_op,
       kRootRank, MPI_COMM_WORLD);
   MICROPROF_END(reduction);
-
-  assert(0 < best_i && best_i <= best_k);
-  assert(0 < best_j && best_j <= best_l);
-  if (transpose) {
-    SWAP(num_rows, num_columns);
-    SWAP(best_i, best_j);
-    SWAP(best_k, best_l);
-  }
 
   /* DONE */
   const double end_time = MPI_Wtime();

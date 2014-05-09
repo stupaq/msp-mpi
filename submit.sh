@@ -16,5 +16,5 @@ while getopts ":m:n:p:c:s:" opt; do
   esac
 done
 
-llsubmit <(./msp-par.ll-gen.sh)
+./msp-par.ll-gen.sh | llsubmit -
 
