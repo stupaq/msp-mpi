@@ -191,14 +191,14 @@ int main(int argc, char * argv[]) {
       if (dispatch == my_rank) {
 #define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
         long long current = -1, nextDiff = COLUMN_SUM(1);
-        for (int j = 1, l = 1; l <= num_rows; ++l) {
+        for (int j = 1, l = 1; l <= num_columns; ++l) {
           assert(j > 0 && l >= j);
           if (current < 0) {
             current = 0;
             j = l;
           }
           current += nextDiff;
-          if (l == num_rows || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
+          if (l == num_columns || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
             UPDATE_MAX_SUM(current, i, j, k, l);
           }
         }
