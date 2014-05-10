@@ -156,15 +156,23 @@ int main(int argc, char * argv[]) {
   /* We will scan subsequence of rows using Kadane's algorithm, we need to
    * detrmine sum of values in corresponding subcolumn. */
   MICROPROF_START(column_sums);
-  {
+  bool local_prefix_sums = true;
+  if (local_prefix_sums) {
+    /* Note that the accumulation here is not very cache efficient, on the other
+     * hand we do it only once and each pass (for given i and k) of Kadane's
+     * algorithm uses each row O(num_columns) times. */
+    for (int j = 1; j <= num_columns; ++j) {
+      MATRIX_ARR(0, j) = 0;
+      for (int i = 1; i <= num_rows; ++i) {
+        MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
+      }
+    }
+  } else {
     assert(matrix_width % num_processes == 0);
     const int per_rank = matrix_width / num_processes,
           my_first = 1 + my_rank * per_rank,
           my_last = (my_rank + 1) * per_rank;
     assert(my_last - my_first + 1 == per_rank);
-    /* Note that the accumulation here is not very cache efficient, on the other
-     * hand we do it only once and each pass (for given i and k) of Kadane's
-     * algorithm uses each row O(num_columns) times. */
     for (int j = my_first; j <= my_last; ++j) {
       MATRIX_ARR(0, j) = 0;
       for (int i = 1; i <= num_rows; ++i) {
