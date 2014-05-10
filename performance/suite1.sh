@@ -13,7 +13,7 @@ for m in 1000 2000 4000; do
     if [[ m -eq 4000 && n -eq 4000 ]]; then
       extra='-A -s'
     fi
-    $SUBMIT -m $m -n $n -s $seed -p 4 $extra
+    $SUBMIT -m $m -n $n -s $seed $extra
   done
 done
 $REPORT $ERRS
