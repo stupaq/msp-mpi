@@ -31,5 +31,5 @@ lint:
 	@$(CLINT) msp-par.c microprof.h
 
 todo:
-	@grep -nrIe "\(TODO\|FIXME\)" --exclude-dir=.git --exclude=Makefile .
+	@grep -nrIe "\(TODO\|FIXME\)" --exclude-dir=.git --exclude=Makefile . || true
 
