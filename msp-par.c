@@ -121,16 +121,19 @@ int main(int argc, char * argv[]) {
   }
   assert(num_rows <= num_columns);
 
-  const int matrix_elements = (num_rows + 1) * num_columns;
-  assert(matrix_elements >= (num_rows + 1) * num_columns);
-  matrix_ptr = (long long*) malloc(matrix_elements * sizeof(long long));
+  const int matrix_height = num_rows + 1,
+        matrix_width = round_up(num_columns, num_processes);
+  assert(matrix_height >= num_rows);
+  assert(matrix_width >= num_columns);
+  matrix_ptr = (long long*) malloc(matrix_height * matrix_width * sizeof(long
+        long));
   if (matrix_ptr == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix!\n");
     err = 2;
     goto exit;
   }
   /* The matrix is laid out in row-major format and indexed starting from 1. */
-#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * num_columns + (_j_ - 1)]
+#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * matrix_width + (_j_ - 1)]
   if (transpose) {
     for (int j = 1; j <= num_columns; ++j) {
       for (int i = 1; i <= num_rows; ++i) {
@@ -152,16 +155,31 @@ int main(int argc, char * argv[]) {
 
   /* We will scan subsequence of rows using Kadane's algorithm, we need to
    * detrmine sum of values in corresponding subcolumn. */
-  // TODO(stupaq) parallelize
   MICROPROF_START(column_sums);
-  /* Note that the accumulation here is not very cache efficient, on the other
-   * hand we do it only once and each pass (for given i and k) of Kadane's
-   * algorithm uses each row O(num_columns) times. */
-  for (int j = 1; j <= num_columns; ++j) {
-    MATRIX_ARR(0, j) = 0;
-    for (int i = 1; i <= num_rows; ++i) {
-      MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
+  {
+    assert(matrix_width % num_processes == 0);
+    const int per_rank = matrix_width / num_processes,
+          my_first = 1 + my_rank * per_rank,
+          my_last = (my_rank + 1) * per_rank;
+    assert(my_last - my_first + 1 == per_rank);
+    /* Note that the accumulation here is not very cache efficient, on the other
+     * hand we do it only once and each pass (for given i and k) of Kadane's
+     * algorithm uses each row O(num_columns) times. */
+    for (int j = my_first; j <= my_last; ++j) {
+      MATRIX_ARR(0, j) = 0;
+      for (int i = 1; i <= num_rows; ++i) {
+        MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
+      }
     }
+    MPI_Datatype columns_t;
+    MPI_Type_vector(matrix_height, per_rank, matrix_width, MPI_LONG_LONG_INT,
+        &columns_t);
+    MPI_Type_create_resized(columns_t, 0, per_rank * sizeof(long long),
+        &columns_t);
+    MPI_Type_commit(&columns_t);
+    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, matrix_ptr, 1, columns_t,
+        MPI_COMM_WORLD);
+    MPI_Type_free(&columns_t);
   }
   MICROPROF_END(column_sums);
 

@@ -18,5 +18,4 @@ for m in `seq $max_m`; do
     $SUBMIT -m $m -n $n -s $seed -p 4 $extra
   done
 done
-
 $VERIFY $ERRS
