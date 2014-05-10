@@ -228,9 +228,8 @@ int main(int argc, char * argv[]) {
       my_rank, best.i, best.j, best.k, best.l, best.sum);
 
   MICROPROF_START(reduction);
-  struct PartialSum best_total;
-  MPI_Reduce(&best, &best_total, 1, partial_sum_t, max_partial_sum_op,
-      kRootRank, MPI_COMM_WORLD);
+  MPI_Reduce(my_rank == kRootRank ? MPI_IN_PLACE : &best, &best, 1,
+      partial_sum_t, max_partial_sum_op, kRootRank, MPI_COMM_WORLD);
   MICROPROF_END(reduction);
 
   /* DONE */
@@ -241,8 +240,8 @@ int main(int argc, char * argv[]) {
         "PWIR2014_Mateusz_Machalica_305678 "
         "Input: (%d,%d,%d) Solution: |(%d,%d),(%d,%d)|=%lld Time: %.10f\n",
         num_rows, num_columns, seed,
-        best_total.i, best_total.j, best_total.k, best_total.l,
-        best_total.sum, end_time - start_time);
+        best.i, best.j, best.k, best.l,
+        best.sum, end_time - start_time);
   }
 
 exit:
