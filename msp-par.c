@@ -159,10 +159,11 @@ int main(int argc, char * argv[]) {
   for (int j = 1; j <= num_columns; ++j) {
     MATRIX_ARR(0, j) = 0;
   }
-  // TODO(stupaq) For M <= 4000 && N <= 4000 turns out to be >= 28% faster in
-  // terms of column_sums profiler entry, note that each process must
-  // physically write entire table in either case.
-  const bool local_prefix_sums = false;
+  // TODO(stupaq)
+  // There is an obvious argument why local computation is no slower than
+  // distributed one - in the end each process has to write O(M * N) values.
+  // The only way to go is to determine which data each process needs exactly.
+  const bool local_prefix_sums = true;
   if (local_prefix_sums) {
     for (int i = 1; i <= num_rows; ++i) {
       for (int j = 1; j <= num_columns; ++j) {
