@@ -156,17 +156,16 @@ int main(int argc, char * argv[]) {
   /* We will scan subsequence of rows using Kadane's algorithm, we need to
    * detrmine sum of values in corresponding subcolumn. */
   MICROPROF_START(column_sums);
+  for (int j = 1; j <= num_columns; ++j) {
+    MATRIX_ARR(0, j) = 0;
+  }
   // TODO(stupaq) For M <= 4000 && N <= 4000 turns out to be >= 28% faster in
   // terms of column_sums profiler entry, note that each process must
   // physically write entire table in either case.
   const bool local_prefix_sums = false;
   if (local_prefix_sums) {
-    /* Note that the accumulation here is not very cache efficient, on the other
-     * hand we do it only once and each pass (for given i and k) of Kadane's
-     * algorithm uses each row O(num_columns) times. */
-    for (int j = 1; j <= num_columns; ++j) {
-      MATRIX_ARR(0, j) = 0;
-      for (int i = 1; i <= num_rows; ++i) {
+    for (int i = 1; i <= num_rows; ++i) {
+      for (int j = 1; j <= num_columns; ++j) {
         MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
       }
     }
@@ -176,9 +175,8 @@ int main(int argc, char * argv[]) {
           my_first = 1 + my_rank * per_rank,
           my_last = (my_rank + 1) * per_rank;
     assert(my_last - my_first + 1 == per_rank);
-    for (int j = my_first; j <= my_last; ++j) {
-      MATRIX_ARR(0, j) = 0;
-      for (int i = 1; i <= num_rows; ++i) {
+    for (int i = 1; i <= num_rows; ++i) {
+      for (int j = my_first; j <= my_last; ++j) {
         MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
       }
     }
