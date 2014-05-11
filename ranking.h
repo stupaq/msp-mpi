@@ -3,6 +3,8 @@
 #ifndef RANKING_H_
 #define RANKING_H_
 
+#include <assert.h>
+#include <stdbool.h>
 #include <stdlib.h>
 
 #define SWAP_ASSIGN(_type_, _x_, _y_) do {  \
@@ -29,11 +31,11 @@ struct Ranking {
   RankingValue* value_;
 };
 
-inline int ranking_empty(struct Ranking* restrict heap) {
+inline bool ranking_empty(struct Ranking* restrict heap) {
   return heap->size_ == 0;
 }
 
-inline int ranking_contains(struct Ranking* restrict heap, int key) {
+inline bool ranking_contains(struct Ranking* restrict heap, int key) {
   return heap->position_[key] >= 0;
 }
 

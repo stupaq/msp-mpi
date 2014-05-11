@@ -133,7 +133,7 @@ int main(int argc, char * argv[]) {
     goto exit;
   }
   /* The matrix is laid out in row-major format and indexed starting from 1. */
-#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * matrix_width + (_j_ - 1)]
+#define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * matrix_width + (_j_) - 1]
   if (transpose) {
     for (int j = 1; j <= num_columns; ++j) {
       for (int i = 1; i <= num_rows; ++i) {
@@ -195,7 +195,7 @@ int main(int argc, char * argv[]) {
 
   MICROPROF_START(kadanes_2d);
   struct PartialSum best = { MATRIX_ARR(1, 1), 1, 1, 1, 1 };
-#define UPDATE_MAX_SUM(_current_, _i_, _j_, _k_, _l_) \
+#define UPDATE_BEST(_current_, _i_, _j_, _k_, _l_) \
   if (best.sum < _current_) {                         \
     best.sum = _current_;                             \
     best.i = _i_; best.j = _j_;                       \
@@ -222,14 +222,14 @@ int main(int argc, char * argv[]) {
           }
           current += nextDiff;
           if (l == num_columns || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
-            UPDATE_MAX_SUM(current, i, j, k, l);
+            UPDATE_BEST(current, i, j, k, l);
           }
         }
 #undef COLUMN_SUM
       }
     }
   }
-#undef UPDATE_MAX_SUM
+#undef UPDATE_BEST
   MICROPROF_END(kadanes_2d);
 
 #ifndef NDEBUG
