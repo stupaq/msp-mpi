@@ -43,61 +43,78 @@ static int matrix_height, matrix_width;
 static struct PartialSum msp_solve(int I, int J, int K, int L) {
   assert(I >= 0 && K >= I);
   assert(J >= 0 && L >= J);
-  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J };
-  if (K == I && L == J) {
-    return best;
-  }
-
+  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J }, other;
 #define UPDATE_BEST(_current_, _i_, _j_, _k_, _l_) \
   if (best.sum < _current_) {                         \
     best.sum = _current_;                             \
     best.i = _i_; best.j = _j_;                       \
     best.k = _k_; best.l = _l_;                       \
   }
-  // FIXME(stupaq) this is not Takaoka's algorithm...
-  for (int i = I; i <= K; ++i) {
-    for (int k = i; k <= K; ++k) {
-      assert(i > 0 && k >= i);
-#define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
-      long long current = -1, nextDiff = COLUMN_SUM(1);
-      for (int j = J, l = J; l <= L; ++l) {
-        assert(j > 0 && l >= j);
-        if (current < 0) {
-          current = 0;
-          j = l;
-        }
-        current += nextDiff;
-        if (l == L || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
-          UPDATE_BEST(current, i, j, k, l);
-        }
-      }
-#undef COLUMN_SUM
-    }
-  }
-#undef UPDATE_BEST
-
 #define UPDATE_BEST1(_other_)            \
   if (best.sum < _other_.sum) {             \
     best.sum = _other_.sum;                 \
     best.i = _other_.i; best.j = _other_.j; \
     best.k = _other_.k; best.l = _other_.l; \
   }
-  struct PartialSum other;
+  if (K == I && L == J) {
+    return best;
+  }
+
+  // FIXME(stupaq) this is not Takaoka's algorithm...
   if (K - I > L - J) {
     int mid = (I + K) / 2;
+    // FIXME(stupaq) here!
+#define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_) \
+    - MATRIX_ARR(k, _j_ - 1) + MATRIX_ARR(i - 1, _j_ - 1))
+    for (int i = I; i <= mid; ++i) {
+      for (int k = mid + 1; k <= K; ++k) {
+        long long current = -1, nextDiff = COLUMN_SUM(1);
+        for (int j = J, l = J; l <= L; ++l) {
+          if (current < 0) {
+            current = 0;
+            j = l;
+          }
+          current += nextDiff;
+          if (l == L || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
+            UPDATE_BEST(current, i, j, k, l);
+          }
+        }
+      }
+    }
+#undef COLUMN_SUM
     other = msp_solve(I, J, mid, L);
     UPDATE_BEST1(other);
     other = msp_solve(mid + 1, J, K, L);
     UPDATE_BEST1(other);
   } else {
     int mid = (J + L) / 2;
+    // FIXME(stupaq) here!
+#define ROW_SUM(_i_) (MATRIX_ARR(_i_, l) - MATRIX_ARR(_i_, j - 1) \
+    - MATRIX_ARR(_i_ - 1, l) + MATRIX_ARR(_i_ - 1, j - 1))
+    for (int j = J; j <= mid; ++j) {
+      for (int l = mid + 1; l <= L; ++l) {
+        long long current = -1, nextDiff = ROW_SUM(1);
+        for (int i = I, k = I; k <= K; ++k) {
+          if (current < 0) {
+            current = 0;
+            i = k;
+          }
+          current += nextDiff;
+          if (k == K || (nextDiff = ROW_SUM(k + 1)) < 0) {
+            UPDATE_BEST(current, i, j, k, l);
+          }
+        }
+      }
+    }
+#undef ROW_SUM
     other = msp_solve(I, J, K, mid);
     UPDATE_BEST1(other);
     other = msp_solve(I, mid + 1, K, L);
     UPDATE_BEST1(other);
   }
-#undef UPDATE_BEST1
 
+#undef UPDATE_BEST1
+#undef UPDATE_BEST
   return best;
 }
 
@@ -164,13 +181,8 @@ int main(int argc, char * argv[]) {
   for (int i = 1; i <= num_rows; ++i) {
     MATRIX_ARR(i, 0) = 0;
     for (int j = 1; j <= num_columns; ++j) {
-#if 0
-      // FIXME(stupaq) enable for Takaoka's algorithm
       MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j) + MATRIX_ARR(i, j - 1) -
-        MATRIX_ARR(i - 1, j - i);
-#else
-      MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
-#endif
+        MATRIX_ARR(i - 1, j - 1);
     }
   }
 
@@ -184,7 +196,8 @@ int main(int argc, char * argv[]) {
     long long sum = 0;
     for (int i = best.i; i <= best.k; ++i) {
       for (int j = best.j; j <= best.l; ++j) {
-        sum += MATRIX_ARR(i, j) - MATRIX_ARR(i - 1, j);
+        sum += MATRIX_ARR(i, j) - MATRIX_ARR(i - 1, j) - MATRIX_ARR(i, j - 1) +
+          MATRIX_ARR(i - 1, j - 1);
       }
     }
     assert(sum == best.sum);
