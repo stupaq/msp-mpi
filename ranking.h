@@ -105,6 +105,7 @@ inline void ranking_rebuild(struct Ranking* restrict heap) {
 inline void ranking_push(struct Ranking* restrict heap, int key, RankingValue
     value) {
   assert(heap->size_ >= 0);
+  assert(!ranking_contains(heap, key));
   int i = heap->size_;
   heap->key_[i] = key;
   heap->value_[i] = value;
@@ -128,6 +129,15 @@ inline void ranking_pop(struct Ranking* restrict heap) {
   heap->value_[0] = heap->value_[heap->size_];
   heap->position_[heap->key_[0]] = 0;
   ranking_heapify(heap, 0);
+}
+
+inline void ranking_increase(struct Ranking* restrict heap, int key,
+    RankingValue new_value) {
+  assert(ranking_contains(heap, key));
+  int i = heap->position_[key];
+  assert(heap->value_[i] <= new_value);
+  heap->value_[i] = new_value;
+  ranking_heapify(heap, i);
 }
 
 #undef SWAP_ASSIGN
