@@ -47,6 +47,10 @@ inline RankingValue ranking_min_value(struct Ranking* restrict heap) {
 
 inline void ranking_swap_entries(struct Ranking* restrict heap, int i,
     int j) {
+  assert(heap->size_ > i && i >= 0);
+  assert(heap->size_ > j && j >= 0);
+  assert(heap->position_[heap->key_[i]] == i);
+  assert(heap->position_[heap->key_[j]] == j);
   SWAP_ASSIGN(int, heap->key_[i], heap->key_[j]);
   SWAP_ASSIGN(int, heap->value_[i], heap->value_[j]);
   heap->position_[heap->key_[i]] = i;
@@ -54,7 +58,7 @@ inline void ranking_swap_entries(struct Ranking* restrict heap, int i,
 }
 
 inline void ranking_heapify(struct Ranking* restrict heap, const int i) {
-  assert(heap->size_ >= 0);
+  assert(heap->size_ > i && i >= 0);
   const int l = LEFT(i), r = RIGHT(i);
   int j = i;
   if (l < heap->size_ && heap->value_[l] < heap->value_[j]) {
@@ -124,11 +128,13 @@ inline void ranking_push(struct Ranking* restrict heap, int key, RankingValue
 inline void ranking_pop(struct Ranking* restrict heap) {
   assert(heap->size_ > 0);
   --heap->size_;
-  heap->position_[heap->key_[heap->size_]] = -1;
-  heap->key_[0] = heap->key_[heap->size_];
-  heap->value_[0] = heap->value_[heap->size_];
-  heap->position_[heap->key_[0]] = 0;
-  ranking_heapify(heap, 0);
+  heap->position_[heap->key_[0]] = -1;
+  if (heap->size_ > 0) {
+    heap->key_[0] = heap->key_[heap->size_];
+    heap->value_[0] = heap->value_[heap->size_];
+    heap->position_[heap->key_[0]] = 0;
+    ranking_heapify(heap, 0);
+  }
 }
 
 inline void ranking_increase(struct Ranking* restrict heap, int key,
