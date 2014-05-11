@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SUBMIT="`dirname $0`/../submit.sh"
+SUBMIT="`dirname $0`/../submit-par.sh"
 VERIFY="`dirname $0`/../cross-verify.sh"
 ERRS="`dirname $SUBMIT`/*.err"
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-SUBMIT="`dirname $0`/../submit.sh"
+SUBMIT="`dirname $0`/../submit-par.sh"
 REPORT="`dirname $0`/../perf-report.sh"
 ERRS="`dirname $SUBMIT`/*.err"
 
