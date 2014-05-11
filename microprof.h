@@ -1,3 +1,5 @@
+/** Copyright (C) Mateusz Machalica, 2014. */
+
 #ifndef MICROPROF_H_
 #define MICROPROF_H_
 

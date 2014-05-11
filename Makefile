@@ -28,7 +28,7 @@ clean:
 	rm -f *.o *core *~ *.out *.err *.exe
 
 lint:
-	@$(CLINT) msp-seq-kadane.c msp-seq-takaoka.c msp-par.c microprof.h
+	@$(CLINT) msp-seq-kadane.c msp-seq-takaoka.c msp-par.c microprof.h ranking.h
 
 todo:
 	@grep -nrIe "\(TODO\|FIXME\)" --exclude-dir=.git --exclude=Makefile . || true

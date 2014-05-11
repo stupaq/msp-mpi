@@ -16,6 +16,7 @@
 #include <sys/time.h>
 #include "./matgen.h"
 #include "./microprof.h"
+#include "./ranking.h"
 
 #define SWAP_ASSIGN(_type_, _x_, _y_) do {  \
   _type_ swap_temp = _x_;                   \
