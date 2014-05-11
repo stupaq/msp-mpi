@@ -146,6 +146,14 @@ int main(int argc, char * argv[]) {
     goto exit;
   }
 
+  /* We asssert that num_rows <= num_columns for the rest of the algorithm and
+   * appropriately transpose input matrix (durign generation process). */
+  const bool transpose = num_rows > num_columns;
+  if (transpose) {
+    SWAP_ASSIGN(int, num_rows, num_columns);
+  }
+  assert(num_rows <= num_columns);
+
   matrix_height = num_rows + 1;
   matrix_width = num_columns + 1;
   assert(matrix_height >= num_rows);
@@ -157,9 +165,17 @@ int main(int argc, char * argv[]) {
     err = 2;
     goto exit;
   }
-  for (int i = 1; i <= num_rows; ++i) {
+  if (transpose) {
     for (int j = 1; j <= num_columns; ++j) {
-      MATRIX_ARR(i, j) = matgenGenerate(generator);
+      for (int i = 1; i <= num_rows; ++i) {
+        MATRIX_ARR(i, j) = matgenGenerate(generator);
+      }
+    }
+  } else {
+    for (int i = 1; i <= num_rows; ++i) {
+      for (int j = 1; j <= num_columns; ++j) {
+        MATRIX_ARR(i, j) = matgenGenerate(generator);
+      }
     }
   }
   matgenDestroy(generator);
@@ -203,6 +219,12 @@ int main(int argc, char * argv[]) {
     assert(sum == best.sum);
   }
 #endif
+
+  if (transpose) {
+    SWAP_ASSIGN(int, num_rows, num_columns);
+    SWAP_ASSIGN(int, best.i, best.j);
+    SWAP_ASSIGN(int, best.k, best.l);
+  }
 
   /* DONE */
   struct timeval end_time;
