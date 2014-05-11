@@ -8,7 +8,7 @@ CFLAGS		+= -std=gnu99 -Wall -Wextra
 endif
 
 CFLAGS		+= -O3 -DOPTIMIZE=$(OPTIMIZE)
-CLINT		?= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int
+CLINT		?= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int,-readability/casting
 
 MPICC		:= mpicc
 
@@ -16,7 +16,7 @@ HEADERS		:= $(wildcard *.h)
 MATGEN_TYPE	?= matgen-mt
 MATGEN_FILE	:= $(MATGEN_TYPE).o
 
-all: msp-seq-naive.exe msp-par.exe
+all: msp-seq-naive.exe msp-seq-kadane.exe msp-par.exe
 
 %.exe: %.o $(MATGEN_FILE)
 	$(MPICC) $(CFLAGS) -o $@ $^
@@ -28,7 +28,7 @@ clean:
 	rm -f *.o *core *~ *.out *.err *.exe
 
 lint:
-	@$(CLINT) msp-par.c microprof.h
+	@$(CLINT) msp-seq-kadane.c msp-par.c microprof.h
 
 todo:
 	@grep -nrIe "\(TODO\|FIXME\)" --exclude-dir=.git --exclude=Makefile . || true
