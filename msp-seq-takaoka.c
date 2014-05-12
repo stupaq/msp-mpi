@@ -99,25 +99,26 @@ static inline long long msp_vertical_B2(int j, int i) {
 static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
   struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J };
   const int M = K - I + 1, N = L - J + 1, mid = mid_abs - J;
+  /* Zero-cost allocations. */
   int* list1 = temp_ptr;
   int* list2 = list1 + M * N;
+  long long* res_sum1 = (long long*) (list2 + M * N);
+  int* res_k1 = (int*) (res_sum1 + M);
+  long long* res_sum2 = (long long*) (res_k1 + M);
+  int* res_k2 = (int*) (res_sum2 + M);
   /* Prepare lists. */
   msp_vertical_I = I;
   msp_vertical_J = J;
   minsum_prepare(msp_vertical_A1, msp_vertical_B1, M, mid, M, list1);
-  msp_vertical_J +=  2;
+  msp_vertical_J += mid;
   minsum_prepare(msp_vertical_A2, msp_vertical_B2, M, N - mid, M, list2);
   /* For each source... */
   for (int i = 0; i < M; ++i) {
     /* Optimize first component. */
-    long long* res_sum1 = (long long*) (list2 + M * N);
-    int* res_k1 = (int*) (res_sum1 + M);
     msp_vertical_J = J;
     minsum_find_one(msp_vertical_A1, msp_vertical_B1, i, mid, M, list1,
         res_sum1, res_k1);
     /* Optimize second component. */
-    long long* res_sum2 = (long long*) (res_k1 + M);
-    int* res_k2 = (int*) (res_sum2 + M);
     msp_vertical_J += mid;
     minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, N - mid, M,
         list2, res_sum2, res_k2);
