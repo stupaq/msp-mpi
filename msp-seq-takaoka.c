@@ -106,7 +106,7 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
   msp_vertical_J = J;
   minsum_prepare(msp_vertical_A1, msp_vertical_B1, M, mid, M, list1);
   msp_vertical_J +=  2;
-  minsum_prepare(msp_vertical_A2, msp_vertical_B2, M, mid + 1, M, list2);
+  minsum_prepare(msp_vertical_A2, msp_vertical_B2, M, N - mid, M, list2);
   /* For each source... */
   for (int i = 0; i < M; ++i) {
     /* Optimize first component. */
@@ -119,7 +119,7 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
     long long* res_sum2 = (long long*) (res_k1 + M);
     int* res_k2 = (int*) (res_sum2 + M);
     msp_vertical_J += mid;
-    minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, mid + 1, M,
+    minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, N - mid, M,
         list2, res_sum2, res_k2);
     /* Find best sum of components. */
     for (int k = 0; k < M; ++k) {
