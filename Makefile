@@ -16,7 +16,9 @@ HEADERS		:= $(wildcard *.h)
 MATGEN_TYPE	?= matgen-mt
 MATGEN_FILE	:= $(MATGEN_TYPE).o
 
-all: msp-seq-naive.exe msp-seq-kadane.exe msp-seq-takaoka.exe msp-par.exe
+all: seq par
+seq: msp-seq-naive.exe msp-seq-kadane.exe msp-seq-takaoka.exe
+par: msp-par.exe
 
 %.exe: %.o $(MATGEN_FILE)
 	$(MPICC) $(CFLAGS) -o $@ $^
