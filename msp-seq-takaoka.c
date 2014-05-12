@@ -37,6 +37,7 @@ static void print_usage(char const* prog) {
 /* PART OF THE ALGORITHM */
 static long long* matrix_ptr = NULL;
 static int matrix_height, matrix_width;
+static int* list_ptr = NULL;
 /* The matrix is laid out in row-major format and indexed starting from 1. */
 #define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * matrix_width + (_j_)]
 
@@ -70,27 +71,40 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int mid) {
   return best;
 }
 
+static int msp_vertical_I;
+static int msp_vertical_J;
+
+static int msp_vertical_row_cmp(const int* j1, const int* j2) {
+  long long x1 = MATRIX_ARR(msp_vertical_I, msp_vertical_J + *j1),
+       x2 = MATRIX_ARR(msp_vertical_I, msp_vertical_J + *j2);
+  return x1 == x2 ? 0 : (x1 < x2 ? -1 : 1);
+}
+
 static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid) {
   struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J }, other;
   // FIXME(stupaq) here!
-#define ROW_SUM(_i_) (MATRIX_ARR(_i_, l) - MATRIX_ARR(_i_, j - 1) \
-    - MATRIX_ARR(_i_ - 1, l) + MATRIX_ARR(_i_ - 1, j - 1))
-  for (int j = J; j <= mid; ++j) {
-    for (int l = mid + 1; l <= L; ++l) {
-      long long current = -1, nextDiff = ROW_SUM(1);
-      for (int i = I, k = I; k <= K; ++k) {
-        if (current < 0) {
-          current = 0;
-          i = k;
-        }
-        current += nextDiff;
-        if (k == K || (nextDiff = ROW_SUM(k + 1)) < 0) {
-          UPDATE_BEST(current, i, j, k, l);
-        }
-      }
+  msp_vertical_J = J;
+  const int m = K - I + 1, n = L - J + 1;
+  long long* res_sum1 = (long long*) (2 * n * (sizeof(long long) +
+        sizeof(int)));
+  long long* res_sum2 = res_sum1 + n;
+  int* res_k1 = (int*) (res_sum2 + n);
+  int* res_k2 = res_k1 + n;
+#define LIST_ARR(_i_, _j_) list_ptr[(_i_) * n + (_j_)]
+  for (int i = 0; i < m; ++i) {
+    msp_vertical_I = I + i;
+    for (int j = 0; j < n; ++j) {
+      LIST_ARR(i, j) = j;
     }
+    qsort(&LIST_ARR(i, 0), n, sizeof(int),
+        (int (*)(const void*, const void*)) msp_vertical_row_cmp);
   }
-#undef ROW_SUM
+  for (int i = 0; i < m; ++i) {
+    msp_vertical_I = I + i;
+    //minimize_sum(list_ptr, res_sum1, res_k1);
+  }
+  // TODO
+  free(res_sum1);
   return best;
 }
 #undef UPDATE_BEST
@@ -171,6 +185,7 @@ int main(int argc, char * argv[]) {
   assert(matrix_width >= num_columns);
   matrix_ptr = (long long*) malloc(matrix_height * matrix_width * sizeof(long
         long));
+  list_ptr = (int*) malloc(matrix_height * matrix_width * sizeof(int));
   if (matrix_ptr == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix!\n");
     err = 2;
@@ -261,7 +276,7 @@ exit:
   if (generator) {
     matgenDestroy(generator);
   }
-#undef MATRIX_ARR
+  free(list_ptr);
   free(matrix_ptr);
   if (err == 1) {
     print_usage(argv[0]);
