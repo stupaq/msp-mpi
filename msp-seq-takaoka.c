@@ -16,7 +16,7 @@
 #include <sys/time.h>
 #include "./matgen.h"
 #include "./microprof.h"
-#include "./ranking.h"
+#include "./minsum.h"
 
 #define SWAP_ASSIGN(_type_, _x_, _y_) do {  \
   _type_ swap_temp = _x_;                   \
@@ -36,19 +36,26 @@ static void print_usage(char const* prog) {
 
 /* PART OF THE ALGORITHM */
 static long long* matrix_ptr = NULL;
+/* Temporary data (big enough for everything). */
+static void* temp_ptr = NULL;
 static int matrix_height, matrix_width;
-static int* list_ptr = NULL;
 /* The matrix is laid out in row-major format and indexed starting from 1. */
 #define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * matrix_width + (_j_)]
 
-#define UPDATE_BEST(_current_, _i_, _j_, _k_, _l_) \
-  if (best.sum < _current_) {                         \
-    best.sum = _current_;                             \
-    best.i = _i_; best.j = _j_;                       \
-    best.k = _k_; best.l = _l_;                       \
+#define UPDATE_BEST(_sum_, _i_, _j_, _k_, _l_)    \
+  if (best.sum < _sum_) {                         \
+    best.sum = _sum_;                             \
+    best.i = _i_; best.j = _j_;                   \
+    best.k = _k_; best.l = _l_;                   \
+  }
+#define UPDATE_BEST1(_other_)                \
+  if (best.sum < _other_.sum) {             \
+    best.sum = _other_.sum;                 \
+    best.i = _other_.i; best.j = _other_.j; \
+    best.k = _other_.k; best.l = _other_.l; \
   }
 static struct PartialSum msp_horizontal(int I, int J, int K, int L, int mid) {
-  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J }, other;
+  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J };
   // FIXME(stupaq) here!
 #define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_) \
     - MATRIX_ARR(k, _j_ - 1) + MATRIX_ARR(i - 1, _j_ - 1))
@@ -71,43 +78,57 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int mid) {
   return best;
 }
 
-static int msp_vertical_I;
-static int msp_vertical_J;
+static int msp_vertical_I, msp_vertical_J;
 
-static int msp_vertical_row_cmp(const int* j1, const int* j2) {
-  long long x1 = MATRIX_ARR(msp_vertical_I, msp_vertical_J + *j1),
-       x2 = MATRIX_ARR(msp_vertical_I, msp_vertical_J + *j2);
-  return x1 == x2 ? 0 : (x1 < x2 ? -1 : 1);
+static inline long long msp_vertical_A1(int i, int l) {
+  return MATRIX_ARR(msp_vertical_I + i, msp_vertical_J + l);
 }
 
-static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid) {
-  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J }, other;
-  // FIXME(stupaq) here!
+static inline long long msp_vertical_B1(int l, int k) {
+  return - MATRIX_ARR(msp_vertical_I + k, msp_vertical_J + l);
+}
+
+static inline long long msp_vertical_A2(int k, int j) {
+  return MATRIX_ARR(msp_vertical_I + k, msp_vertical_J + j);
+}
+
+static inline long long msp_vertical_B2(int j, int i) {
+  return - MATRIX_ARR(msp_vertical_I + i, msp_vertical_J + j);
+}
+
+static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
+  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J };
+  const int M = K - I + 1, N = L - J + 1, mid = mid_abs - J;
+  int* list1 = temp_ptr;
+  int* list2 = list1 + M * N;
+  /* Prepare lists. */
+  msp_vertical_I = I;
   msp_vertical_J = J;
-  const int m = K - I + 1, n = L - J + 1;
-  long long* res_sum1 = (long long*) (2 * n * (sizeof(long long) +
-        sizeof(int)));
-  long long* res_sum2 = res_sum1 + n;
-  int* res_k1 = (int*) (res_sum2 + n);
-  int* res_k2 = res_k1 + n;
-#define LIST_ARR(_i_, _j_) list_ptr[(_i_) * n + (_j_)]
-  for (int i = 0; i < m; ++i) {
-    msp_vertical_I = I + i;
-    for (int j = 0; j < n; ++j) {
-      LIST_ARR(i, j) = j;
+  minsum_prepare(msp_vertical_A1, msp_vertical_B1, M, mid, M, list1);
+  msp_vertical_J +=  2;
+  minsum_prepare(msp_vertical_A2, msp_vertical_B2, M, mid + 1, M, list2);
+  /* For each source... */
+  for (int i = 0; i < M; ++i) {
+    /* Optimize first component. */
+    long long* res_sum1 = (long long*) (list2 + M * N);
+    int* res_k1 = (int*) (res_sum1 + M);
+    msp_vertical_J = J;
+    minsum_find_one(msp_vertical_A1, msp_vertical_B1, i, mid, M, list1,
+        res_sum1, res_k1);
+    /* Optimize second component. */
+    long long* res_sum2 = (long long*) (res_k1 + M);
+    int* res_k2 = (int*) (res_sum2 + M);
+    msp_vertical_J += mid;
+    minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, mid + 1, M,
+        list2, res_sum2, res_k2);
+    /* Find best sum of components. */
+    for (int k = 0; k < M; ++k) {
+      UPDATE_BEST(- res_sum1[k] - res_sum2[k], I + i, J + res_k1[k], I + k,
+          J + mid + res_k2[k]);
     }
-    qsort(&LIST_ARR(i, 0), n, sizeof(int),
-        (int (*)(const void*, const void*)) msp_vertical_row_cmp);
   }
-  for (int i = 0; i < m; ++i) {
-    msp_vertical_I = I + i;
-    //minimize_sum(list_ptr, res_sum1, res_k1);
-  }
-  // TODO
-  free(res_sum1);
   return best;
 }
-#undef UPDATE_BEST
 
 static struct PartialSum msp_solve(int I, int J, int K, int L) {
   assert(I >= 0 && K >= I);
@@ -116,32 +137,27 @@ static struct PartialSum msp_solve(int I, int J, int K, int L) {
   if (K == I && L == J) {
     return best;
   }
-#define UPDATE_BEST(_other_)            \
-  if (best.sum < _other_.sum) {             \
-    best.sum = _other_.sum;                 \
-    best.i = _other_.i; best.j = _other_.j; \
-    best.k = _other_.k; best.l = _other_.l; \
-  }
   if (K - I > L - J) {
     int mid = (I + K) / 2;
     other = msp_horizontal(I, J, K, L, mid);
-    UPDATE_BEST(other);
+    UPDATE_BEST1(other);
     other = msp_solve(I, J, mid, L);
-    UPDATE_BEST(other);
+    UPDATE_BEST1(other);
     other = msp_solve(mid + 1, J, K, L);
-    UPDATE_BEST(other);
+    UPDATE_BEST1(other);
   } else {
     int mid = (J + L) / 2;
     other = msp_vertical(I, J, K, L, mid);
-    UPDATE_BEST(other);
+    UPDATE_BEST1(other);
     other = msp_solve(I, J, K, mid);
-    UPDATE_BEST(other);
+    UPDATE_BEST1(other);
     other = msp_solve(I, mid + 1, K, L);
-    UPDATE_BEST(other);
+    UPDATE_BEST1(other);
   }
-#undef UPDATE_BEST
   return best;
 }
+#undef UPDATE_BEST1
+#undef UPDATE_BEST
 
 int main(int argc, char * argv[]) {
   int err = 0;
@@ -185,7 +201,8 @@ int main(int argc, char * argv[]) {
   assert(matrix_width >= num_columns);
   matrix_ptr = (long long*) malloc(matrix_height * matrix_width * sizeof(long
         long));
-  list_ptr = (int*) malloc(matrix_height * matrix_width * sizeof(int));
+  temp_ptr = malloc(2 * matrix_height * matrix_width * sizeof(int) +
+      2 * (matrix_height + matrix_width) * (sizeof(long long) + sizeof(int)));
   if (matrix_ptr == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix!\n");
     err = 2;
@@ -276,7 +293,7 @@ exit:
   if (generator) {
     matgenDestroy(generator);
   }
-  free(list_ptr);
+  free(temp_ptr);
   free(matrix_ptr);
   if (err == 1) {
     print_usage(argv[0]);

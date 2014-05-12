@@ -3,7 +3,7 @@
 OPTIMIZE	?= 0
 
 # Platform specific options
-ifeq ($(shell hostname), students)
+ifneq ($(shell hostname), notos)
 CFLAGS		+= -std=gnu99 -Wall -Wextra
 endif
 
