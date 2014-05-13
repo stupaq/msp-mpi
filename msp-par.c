@@ -194,7 +194,7 @@ int main(int argc, char * argv[]) {
   MICROPROF_END(column_sums);
 
   MICROPROF_START(kadanes_2d);
-  struct PartialSum best = { MATRIX_ARR(1, 1), 1, 1, 1, 1 };
+  struct PartialSum best = { MATRIX_ARR(1, 1) - MATRIX_ARR(0, 1), 1, 1, 1, 1 };
 #define UPDATE_BEST(_current_, _i_, _j_, _k_, _l_) \
   if (best.sum < _current_) {                         \
     best.sum = _current_;                             \

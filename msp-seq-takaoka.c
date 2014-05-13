@@ -41,6 +41,8 @@ static void* temp_ptr = NULL;
 static int matrix_height, matrix_width;
 /* The matrix is laid out in row-major format and indexed starting from 1. */
 #define MATRIX_ARR(_i_, _j_) matrix_ptr[(_i_) * matrix_width + (_j_)]
+#define ORIG_ARR(_i_, _j_) (MATRIX_ARR(_i_, _j_) - MATRIX_ARR(_i_ - 1, _j_)   \
+    - MATRIX_ARR(_i_, _j_ - 1) + MATRIX_ARR(_i_ - 1, _j_ - 1))
 
 #define UPDATE_BEST(_sum_, _i_, _j_, _k_, _l_)    \
   if (best.sum < _sum_) {                         \
@@ -55,7 +57,7 @@ static int matrix_height, matrix_width;
     best.k = _other_.k; best.l = _other_.l; \
   }
 static struct PartialSum msp_horizontal(int I, int J, int K, int L, int mid) {
-  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J };
+  struct PartialSum best = { ORIG_ARR(I, J), I, J, I, J };
   // FIXME(stupaq) here!
 #define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_) \
     - MATRIX_ARR(k, _j_ - 1) + MATRIX_ARR(i - 1, _j_ - 1))
@@ -97,7 +99,7 @@ static inline long long msp_vertical_B2(int j, int i) {
 }
 
 static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
-  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J };
+  struct PartialSum best = { ORIG_ARR(I, J), I, J, I, J };
   const int M = K - I + 1, N = L - J + 1, mid = mid_abs - J;
   /* Zero-cost allocations. */
   int* list1 = temp_ptr;
@@ -134,13 +136,13 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
 static struct PartialSum msp_solve(int I, int J, int K, int L) {
   assert(I >= 0 && K >= I);
   assert(J >= 0 && L >= J);
-  struct PartialSum best = { MATRIX_ARR(I, J), I, J, I, J }, other;
+  struct PartialSum best = { ORIG_ARR(I, J), I, J, I, J }, other;
   if (K == I && L == J) {
     return best;
   }
   if (K - I > L - J) {
     int mid = (I + K) / 2;
-    other = msp_horizontal(I, J, K, L, mid);
+    best = msp_horizontal(I, J, K, L, mid);
     UPDATE_BEST1(other);
     other = msp_solve(I, J, mid, L);
     UPDATE_BEST1(other);
@@ -148,7 +150,7 @@ static struct PartialSum msp_solve(int I, int J, int K, int L) {
     UPDATE_BEST1(other);
   } else {
     int mid = (J + L) / 2;
-    other = msp_vertical(I, J, K, L, mid);
+    best = msp_vertical(I, J, K, L, mid);
     UPDATE_BEST1(other);
     other = msp_solve(I, J, K, mid);
     UPDATE_BEST1(other);
@@ -256,8 +258,7 @@ int main(int argc, char * argv[]) {
     long long sum = 0;
     for (int i = best.i; i <= best.k; ++i) {
       for (int j = best.j; j <= best.l; ++j) {
-        sum += MATRIX_ARR(i, j) - MATRIX_ARR(i - 1, j) - MATRIX_ARR(i, j - 1) +
-          MATRIX_ARR(i - 1, j - 1);
+        sum += ORIG_ARR(i, j);
       }
     }
     assert(sum == best.sum);

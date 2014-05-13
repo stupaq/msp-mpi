@@ -80,8 +80,8 @@ static inline void ranking_free(struct Ranking* restrict heap) {
   RESET_HEAP(heap);
 }
 
-static inline int ranking_create(struct Ranking* restrict heap, const int capacity,
-    const int keys_range) {
+static inline int ranking_create(struct Ranking* restrict heap, const int
+    capacity, const int keys_range) {
   unsigned char* ptr = (unsigned char*) malloc(capacity * sizeof(int) +
       capacity * sizeof(RankingValue) + keys_range * sizeof(int));
   if (!ptr) {
@@ -108,8 +108,8 @@ static inline void ranking_rebuild(struct Ranking* restrict heap) {
   }
 }
 
-static inline void ranking_push(struct Ranking* restrict heap, int key, RankingValue
-    value) {
+static inline void ranking_push(struct Ranking* restrict heap, int key,
+    RankingValue value) {
   assert(heap->size_ >= 0);
   assert(!ranking_contains(heap, key));
   int i = heap->size_;
