@@ -87,10 +87,10 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
     mid_abs) {
   struct PartialSum best = { ORIG_ARR(I, J), I, J, I, J };
   const int M = K - I + 1, N = L - J + 1, mid = mid_abs - I + 1;
-/*  max_{j=0..N, l=j..N}{ - (
- *    min_{i=I..mid}{- s(i-1, j-1) + s(i-1, l)}
- *    min_{k=mid+1..M}{s(k, j-1) - s(k, l)}
- *  )} */
+  /*  max_{j=0..N, l=j..N}{ - (
+   *    min_{i=I..mid}{- s(i-1, j-1) + s(i-1, l)}
+   *    min_{k=mid+1..M}{s(k, j-1) - s(k, l)}
+   *  )} */
   assert(N <= M);
   assert(0 < mid && mid < M);
   /* Zero-cost allocations. */

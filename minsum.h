@@ -15,7 +15,7 @@ static long long (*minsum_A) (int, int);
 static long long (*minsum_B) (int, int);
 
 static inline int minsum_prepare_list_cmp(const int* j1, const int* j2) {
-  long long x1 = minsum_A(minsum_k, *j1), x2 = minsum_B(minsum_k, *j2);
+  long long x1 = minsum_B(minsum_k, *j1), x2 = minsum_B(minsum_k, *j2);
   return x1 == x2 ? 0 : (x1 < x2 ? -1 : 1);
 }
 
@@ -26,19 +26,16 @@ static inline void minsum_prepare(
     int* restrict list_ptr                  /* k_count x j_count */
     ) {
   SUPPRESS_UNUSED(i_count);
-  // FIXME(stupaq) for now...
-#if 0
   minsum_A = A;
   minsum_B = B;
   for (int k = 0; k < k_count; ++k) {
-    minsum_k = k;
     for (int j = 0; j < j_count; ++j) {
       LIST_ARR(k, j) = j;
     }
+    minsum_k = k;
     qsort(&LIST_ARR(k, 0), j_count, sizeof(int),
         (int (*)(const void*, const void*)) minsum_prepare_list_cmp);
   }
-#endif
 }
 
 // TODO(stupaq) this is a modification of the new algorithm, needs proof
@@ -50,20 +47,6 @@ static inline void minsum_find_one(
     long long* restrict result_sum,         /* j_count */
     int* restrict result_k                  /* j_count */
     ) {
-  assert(k_count > 0 && j_count > 0);
-  for (int j = 0; j < j_count; ++j) {
-    result_sum[j] = A(i_ind, 0) + B(0, j);
-    result_k[j] = 0;
-    for (int k = 1; k < k_count; ++k) {
-      long long sum = A(i_ind, k) + B(k, j);
-      if (result_sum[j] > sum) {
-        result_sum[j] = sum;
-        result_k[j] = k;
-      }
-    }
-  }
-  // FIXME(stupaq) for now...
-#if 0
   void* const temp_ptr = malloc(k_count * (sizeof(int) + sizeof(long long)) +
       j_count * sizeof(bool));
   int* cand = temp_ptr;                               /* k_count */
@@ -71,6 +54,7 @@ static inline void minsum_find_one(
 #define CAND_GET(k) LIST_ARR(k, cand[k])
 #define CAND_NEXT(k) LIST_ARR(k, ++cand[k])
 #define CAND_HAS(k) (cand[k] < j_count)
+#define CAND_HAS_NEXT(k) (cand[k] < j_count - 1)
   bool* solved = (bool*) (cand + k_count);            /* j_count */
   memset(solved, 0, j_count);
   long long* dist = (long long*) (solved + j_count);  /* k_count */
@@ -103,7 +87,7 @@ static inline void minsum_find_one(
     /* The update for k. */
     int w = CAND_GET(k);
     int limit = (int) ((double) k_count / (offset - solved_count)) + 1;
-    for (; solved[w] && limit >= 0; --limit) {
+    for (; solved[w] && CAND_HAS_NEXT(k) && limit >= 0; --limit) {
       w = CAND_NEXT(k);
       assert(CAND_HAS(k));
     }
@@ -119,7 +103,6 @@ static inline void minsum_find_one(
 #undef CAND_GET
   ranking_free(&queue);
   free(temp_ptr);
-#endif
 }
 
 #undef LIST_ARR

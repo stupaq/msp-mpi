@@ -90,8 +90,8 @@ static inline int ranking_create(struct Ranking* restrict heap, const int
   }
   heap->size_ = 0;
   heap->key_ = (int*) ptr;
-  heap->value_ = (long long*) heap->position_ + capacity;
-  heap->position_ = (int*) heap->key_ + capacity;
+  heap->value_ = (long long*) (heap->key_ + keys_range);
+  heap->position_ = (int*) (heap->value_ + capacity);
   for (int i = 0; i < keys_range; ++i) {
     heap->position_[i] = -1;
   }
@@ -141,11 +141,34 @@ static inline void ranking_pop(struct Ranking* restrict heap) {
 
 static inline void ranking_increase(struct Ranking* restrict heap, int key,
     RankingValue new_value) {
+  assert(heap->size_ > 0);
   assert(ranking_contains(heap, key));
   int i = heap->position_[key];
   assert(heap->value_[i] <= new_value);
   heap->value_[i] = new_value;
   ranking_heapify(heap, i);
+}
+
+static inline void ranking_fprintf(FILE* filep, struct Ranking* restrict heap)
+{
+  assert(heap->size_ > 0);
+  fprintf(filep, "Ranking: %p\n\tkeys:", (void*) heap);
+  int max_key = -1;
+  for (int i = 0; i < heap->size_; ++i) {
+    fprintf(filep, "\t%d", heap->key_[i]);
+    if (max_key < heap->key_[i]) {
+      max_key = heap->key_[i];
+    }
+  }
+  fprintf(filep, "\n\tvalues:\t");
+  for (int i = 0; i < heap->size_; ++i) {
+    fprintf(filep, "\t%lld", heap->value_[i]);
+  }
+  fprintf(filep, "\n\tpositions:\t");
+  for (int i = 0; i < max_key; ++i) {
+    fprintf(filep, "\t%d", heap->position_[i]);
+  }
+  fprintf(filep, "\n");
 }
 
 #undef SWAP_ASSIGN
