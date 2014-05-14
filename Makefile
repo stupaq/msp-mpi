@@ -13,12 +13,14 @@ CLINT		?= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,
 MPICC		:= mpicc
 
 HEADERS		:= $(wildcard *.h)
+SEQUENTIAL	?= $(wildcard msp-seq*.c)
+PARALLEL	?= $(wildcard msp-par*.c)
+NOLINT		?= matgen.h matgen-mt.c msp-seq-naive.c
+
 MATGEN_TYPE	?= matgen-mt
 MATGEN_FILE	:= $(MATGEN_TYPE).o
 
-all: seq par
-seq: msp-seq-naive.exe msp-seq-kadane.exe msp-seq-takaoka.exe
-par: msp-par.exe
+all: $(SEQUENTIAL:.c=.exe) $(PARALLEL:.c=.exe)
 
 %.exe: %.o $(MATGEN_FILE)
 	$(MPICC) $(CFLAGS) -o $@ $^
@@ -30,7 +32,7 @@ clean:
 	rm -f *.o *core *~ *.out *.err *.exe
 
 lint:
-	@$(CLINT) msp-seq-kadane.c msp-seq-takaoka.c msp-par.c microprof.h ranking.h
+	@$(CLINT) $(filter-out $(NOLINT), $(wildcard *.*))
 
 todo:
 	@grep -nrIe "\(TODO\|FIXME\)" --exclude-dir=.git --exclude=Makefile . || true
