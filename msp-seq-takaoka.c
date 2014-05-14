@@ -117,10 +117,10 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
     minsum_find_one(msp_horizontal_A2, msp_horizontal_B2, j, M - mid, N,
         list2, res_sum2, res_l2);
     /* Find best sum of components. */
-    int best_l = 0;
+    int best_l = j;
     assert(best_l < N);
     long long best_sum = - res_sum1[best_l] - res_sum2[best_l];
-    for (int l = j; l < N; ++l) {
+    for (int l = j + 1; l < N; ++l) {
       long long sum = - res_sum1[l] - res_sum2[l];
       if (best_sum < sum) {
         best_l = l;
@@ -193,10 +193,10 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
     minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, N - mid, M, list2,
         res_sum2, res_k2);
     /* Find best sum of components. */
-    int best_k = 0;
+    int best_k = i;
     assert(best_k < M);
     long long best_sum = - res_sum1[best_k] - res_sum2[best_k];
-    for (int k = i; k < M; ++k) {
+    for (int k = i + 1; k < M; ++k) {
       long long sum = - res_sum1[k] - res_sum2[k];
       if (best_sum < sum) {
         best_k = k;

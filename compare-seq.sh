@@ -24,7 +24,7 @@ for t in "$@"; do
   N=${BASH_REMATCH[2]}
   S=${BASH_REMATCH[3]}
 
-  [[ `$BIN1 $M $N $S 2>&1` =~ $RESULT_LINE_REGEX ]] || abort "cannot match output 1"
+  [[ `$BIN1 $M $N $S 2>&1` =~ $RESULT_LINE_REGEX ]] || abort "cannot match output 1 for ($M,$N,$S)"
   [[ $M -eq ${BASH_REMATCH[1]} ]] || abort
   [[ $N -eq ${BASH_REMATCH[2]} ]] || abort
   [[ $S -eq ${BASH_REMATCH[3]} ]] || abort
@@ -33,7 +33,7 @@ for t in "$@"; do
   # Clean BASH_REMATCH just in case
   [[ 0 =~ 0 ]]
 
-  [[ `$BIN2 $M $N $S 2>&1` =~ $RESULT_LINE_REGEX ]] || abort "cannot match output 2"
+  [[ `$BIN2 $M $N $S 2>&1` =~ $RESULT_LINE_REGEX ]] || abort "cannot match output 2 for ($M,$N,$S)"
   [[ $M -eq ${BASH_REMATCH[1]} ]] || abort
   [[ $N -eq ${BASH_REMATCH[2]} ]] || abort
   [[ $S -eq ${BASH_REMATCH[3]} ]] || abort
