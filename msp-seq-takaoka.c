@@ -220,7 +220,6 @@ static struct PartialSum msp_solve(int I, int J, int K, int L) {
   if (K - I > L - J) {
     int mid = (I + K) / 2;
     best = msp_horizontal(I, J, K, L, mid);
-    UPDATE_BEST1(other);
     other = msp_solve(I, J, mid, L);
     UPDATE_BEST1(other);
     other = msp_solve(mid + 1, J, K, L);
@@ -228,7 +227,6 @@ static struct PartialSum msp_solve(int I, int J, int K, int L) {
   } else {
     int mid = (J + L) / 2;
     best = msp_vertical(I, J, K, L, mid);
-    UPDATE_BEST1(other);
     other = msp_solve(I, J, K, mid);
     UPDATE_BEST1(other);
     other = msp_solve(I, mid + 1, K, L);
