@@ -56,27 +56,83 @@ static int matrix_height, matrix_width;
     best.i = _other_.i; best.j = _other_.j; \
     best.k = _other_.k; best.l = _other_.l; \
   }
-static struct PartialSum msp_horizontal(int I, int J, int K, int L, int mid) {
+
+static int msp_horizontal_I, msp_horizontal_J, msp_horizontal_L;
+
+/* - s(i-1, j-1) */
+static inline long long msp_horizontal_A1(int j, int i) {
+  return - MATRIX_ARR(msp_horizontal_I + i - 1, msp_horizontal_J + j - 1);
+}
+
+/* + s(i-1, l) */
+static inline long long msp_horizontal_B1(int i, int l) {
+  return MATRIX_ARR(msp_horizontal_I + i - 1, msp_horizontal_L + l);
+}
+
+/* + s(k, j-1) */
+static inline long long msp_horizontal_A2(int j, int k) {
+  return MATRIX_ARR(msp_horizontal_I + k, msp_horizontal_J + j - 1);
+}
+
+/* - s(k, l) */
+static inline long long msp_horizontal_B2(int k, int l) {
+  return - MATRIX_ARR(msp_horizontal_I + k, msp_horizontal_L + l);
+}
+
+/*  max_{j=J..L, l=j..L}{ - (
+ *    min_{i=I..mid_abs}{- s(i-1, j-1) + s(i-1, l)}
+ *    min_{k=mid_abs+1..K}{s(k, j-1) - s(k, l)}
+ *  )} */
+static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
+    mid_abs) {
   struct PartialSum best = { ORIG_ARR(I, J), I, J, I, J };
-  // FIXME(stupaq) here!
-#define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_) \
-    - MATRIX_ARR(k, _j_ - 1) + MATRIX_ARR(i - 1, _j_ - 1))
-  for (int i = I; i <= mid; ++i) {
-    for (int k = mid + 1; k <= K; ++k) {
-      long long current = -1, nextDiff = COLUMN_SUM(1);
-      for (int j = J, l = J; l <= L; ++l) {
-        if (current < 0) {
-          current = 0;
-          j = l;
-        }
-        current += nextDiff;
-        if (l == L || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
-          UPDATE_BEST(current, i, j, k, l);
-        }
+  const int M = K - I + 1, N = L - J + 1, mid = mid_abs - I + 1;
+/*  max_{j=0..N, l=j..N}{ - (
+ *    min_{i=I..mid}{- s(i-1, j-1) + s(i-1, l)}
+ *    min_{k=mid+1..M}{s(k, j-1) - s(k, l)}
+ *  )} */
+  assert(N <= M);
+  assert(0 < mid && mid < M);
+  /* Zero-cost allocations. */
+  int* list1 = temp_ptr;
+  int* list2 = list1 + M * N;
+  long long* res_sum1 = (long long*) (list2 + M * N);
+  int* res_l1 = (int*) (res_sum1 + N);
+  long long* res_sum2 = (long long*) (res_l1 + N);
+  int* res_l2 = (int*) (res_sum2 + N);
+  /* Prepare lists. */
+  msp_horizontal_I = I;
+  msp_horizontal_J = J;
+  msp_horizontal_L = J;
+  minsum_prepare(msp_horizontal_A1, msp_horizontal_B1, N, mid, N, list1);
+  msp_horizontal_I += mid;
+  minsum_prepare(msp_horizontal_A2, msp_horizontal_B2, N, M - mid, N, list2);
+  /* For each source... */
+  for (int j = 0; j < N; ++j) {
+    msp_horizontal_L = J + j;
+    /* Optimize first component. */
+    msp_horizontal_I = I;
+    minsum_find_one(msp_horizontal_A1, msp_horizontal_B1, j, mid, N - j, list1,
+        res_sum1, res_l1);
+    /* Optimize second component. */
+    msp_horizontal_I += mid;
+    minsum_find_one(msp_horizontal_A2, msp_horizontal_B2, j, M - mid, N - j,
+        list2, res_sum2, res_l2);
+    /* Find best sum of components. */
+    int best_l = 0;
+    assert(best_l < N - j);
+    long long best_sum = - res_sum1[best_l] - res_sum2[best_l];
+    for (int l = 0; l < N - j; ++l) {
+      long long sum = - res_sum1[l] - res_sum2[l];
+      if (best_sum < sum) {
+        best_l = l;
+        best_sum = sum;
       }
     }
+    UPDATE_BEST(best_sum,
+        I + res_l1[best_l], J + j,
+        I + mid + res_l2[best_l], J + j + best_l);
   }
-#undef COLUMN_SUM
   return best;
 }
 
@@ -131,9 +187,9 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
   minsum_prepare(msp_vertical_A2, msp_vertical_B2, M, N - mid, M, list2);
   /* For each source... */
   for (int i = 0; i < M; ++i) {
+    msp_vertical_K = I + i;
     /* Optimize first component. */
     msp_vertical_J = J;
-    msp_vertical_K = I + i;
     minsum_find_one(msp_vertical_A1, msp_vertical_B1, i, mid, M - i, list1,
         res_sum1, res_k1);
     /* Optimize second component. */
@@ -152,10 +208,8 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
       }
     }
     UPDATE_BEST(best_sum,
-        I + i,
-        J + res_k1[best_k],
-        I + i + best_k,
-        J + mid + res_k2[best_k]);
+        I + i, J + res_k1[best_k],
+        I + i + best_k, J + mid + res_k2[best_k]);
   }
   return best;
 }
