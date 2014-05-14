@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 SUBMIT="`dirname $0`/../submit-par.sh"
-VERIFY="`dirname $0`/../cross-verify.sh"
+REPORT="`dirname $0`/../corr-report.sh"
 ERRS="`dirname $SUBMIT`/*.err"
 
 max_m=4
@@ -18,4 +18,4 @@ for m in `seq $max_m`; do
     $SUBMIT -m $m -n $n -s $seed -p 4 $extra
   done
 done
-$VERIFY $ERRS
+$REPORT $ERRS
