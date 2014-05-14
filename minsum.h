@@ -55,17 +55,18 @@ static inline void minsum_find_one(
   void* const temp_ptr = malloc(k_count * sizeof(int) + j_count *
       sizeof(bool));
   int* cand = temp_ptr;                               /* k_count */
-  memset(cand, 0, k_count);
+  memset(cand, 0, k_count * sizeof(int));
 #define CAND_GET(k) LIST_ARR(k, cand[k])
 #define CAND_NEXT(k) LIST_ARR(k, ++cand[k])
 #define CAND_HAS(k) (cand[k] < j_count)
 #define CAND_HAS_NEXT(k) (cand[k] < j_count - 1)
   bool* solved = (bool*) (cand + k_count);            /* j_count */
-  memset(solved, 0, j_count);
+  memset(solved, 0, j_count * sizeof(bool));
   struct Ranking queue;                               /* k_count */
   ranking_create(&queue, k_count, k_count);
   queue.size_ = k_count;
   for (int k = 0; k < k_count; ++k) {
+    assert(cand[k] == 0);
     queue.key_[k] = k;
     queue.value_[k] = A(i_ind, k) + B(k, CAND_GET(k));
   }
