@@ -57,7 +57,7 @@ static int matrix_height, matrix_width;
     best.k = _other_.k; best.l = _other_.l; \
   }
 
-static int msp_horizontal_I, msp_horizontal_J, msp_horizontal_L;
+static int msp_horizontal_I, msp_horizontal_J;
 
 /* - s(i-1, j-1) */
 static inline long long msp_horizontal_A1(int j, int i) {
@@ -66,7 +66,7 @@ static inline long long msp_horizontal_A1(int j, int i) {
 
 /* + s(i-1, l) */
 static inline long long msp_horizontal_B1(int i, int l) {
-  return MATRIX_ARR(msp_horizontal_I + i - 1, msp_horizontal_L + l);
+  return MATRIX_ARR(msp_horizontal_I + i - 1, msp_horizontal_J + l);
 }
 
 /* + s(k, j-1) */
@@ -76,7 +76,7 @@ static inline long long msp_horizontal_A2(int j, int k) {
 
 /* - s(k, l) */
 static inline long long msp_horizontal_B2(int k, int l) {
-  return - MATRIX_ARR(msp_horizontal_I + k, msp_horizontal_L + l);
+  return - MATRIX_ARR(msp_horizontal_I + k, msp_horizontal_J + l);
 }
 
 /*  max_{j=J..L, l=j..L}{ - (
@@ -103,26 +103,24 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
   /* Prepare lists. */
   msp_horizontal_I = I;
   msp_horizontal_J = J;
-  msp_horizontal_L = J;
   minsum_prepare(msp_horizontal_A1, msp_horizontal_B1, N, mid, N, list1);
   msp_horizontal_I += mid;
   minsum_prepare(msp_horizontal_A2, msp_horizontal_B2, N, M - mid, N, list2);
   /* For each source... */
   for (int j = 0; j < N; ++j) {
-    msp_horizontal_L = J + j;
     /* Optimize first component. */
     msp_horizontal_I = I;
-    minsum_find_one(msp_horizontal_A1, msp_horizontal_B1, j, mid, N - j, list1,
+    minsum_find_one(msp_horizontal_A1, msp_horizontal_B1, j, mid, N, list1,
         res_sum1, res_l1);
     /* Optimize second component. */
     msp_horizontal_I += mid;
-    minsum_find_one(msp_horizontal_A2, msp_horizontal_B2, j, M - mid, N - j,
+    minsum_find_one(msp_horizontal_A2, msp_horizontal_B2, j, M - mid, N,
         list2, res_sum2, res_l2);
     /* Find best sum of components. */
     int best_l = 0;
-    assert(best_l < N - j);
+    assert(best_l < N);
     long long best_sum = - res_sum1[best_l] - res_sum2[best_l];
-    for (int l = 0; l < N - j; ++l) {
+    for (int l = j; l < N; ++l) {
       long long sum = - res_sum1[l] - res_sum2[l];
       if (best_sum < sum) {
         best_l = l;
@@ -131,12 +129,12 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
     }
     UPDATE_BEST(best_sum,
         I + res_l1[best_l], J + j,
-        I + mid + res_l2[best_l], J + j + best_l);
+        I + mid + res_l2[best_l], J + best_l);
   }
   return best;
 }
 
-static int msp_vertical_I, msp_vertical_J, msp_vertical_K;
+static int msp_vertical_I, msp_vertical_J;
 
 /* - s(i-1, j-1) */
 static inline long long msp_vertical_A1(int i, int j) {
@@ -145,7 +143,7 @@ static inline long long msp_vertical_A1(int i, int j) {
 
 /* + s(k, j-1) */
 static inline long long msp_vertical_B1(int j, int k) {
-  return MATRIX_ARR(msp_vertical_K + k, msp_vertical_J + j - 1);
+  return MATRIX_ARR(msp_vertical_I + k, msp_vertical_J + j - 1);
 }
 
 /* + s(i-1, l) */
@@ -155,7 +153,7 @@ static inline long long msp_vertical_A2(int i, int l) {
 
 /* - s(k, l) */
 static inline long long msp_vertical_B2(int l, int k) {
-  return - MATRIX_ARR(msp_vertical_K + k, msp_vertical_J + l);
+  return - MATRIX_ARR(msp_vertical_I + k, msp_vertical_J + l);
 }
 
 /*  max_{i=I..K, k=i..K}{ - (
@@ -181,26 +179,24 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
   /* Prepare lists. */
   msp_vertical_I = I;
   msp_vertical_J = J;
-  msp_vertical_K = I;
   minsum_prepare(msp_vertical_A1, msp_vertical_B1, M, mid, M, list1);
   msp_vertical_J += mid;
   minsum_prepare(msp_vertical_A2, msp_vertical_B2, M, N - mid, M, list2);
   /* For each source... */
   for (int i = 0; i < M; ++i) {
-    msp_vertical_K = I + i;
     /* Optimize first component. */
     msp_vertical_J = J;
-    minsum_find_one(msp_vertical_A1, msp_vertical_B1, i, mid, M - i, list1,
+    minsum_find_one(msp_vertical_A1, msp_vertical_B1, i, mid, M, list1,
         res_sum1, res_k1);
     /* Optimize second component. */
     msp_vertical_J += mid;
-    minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, N - mid, M - i,
-        list2, res_sum2, res_k2);
+    minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, N - mid, M, list2,
+        res_sum2, res_k2);
     /* Find best sum of components. */
     int best_k = 0;
-    assert(best_k < M - i);
+    assert(best_k < M);
     long long best_sum = - res_sum1[best_k] - res_sum2[best_k];
-    for (int k = 0; k < M - i; ++k) {
+    for (int k = i; k < M; ++k) {
       long long sum = - res_sum1[k] - res_sum2[k];
       if (best_sum < sum) {
         best_k = k;
@@ -209,7 +205,7 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
     }
     UPDATE_BEST(best_sum,
         I + i, J + res_k1[best_k],
-        I + i + best_k, J + mid + res_k2[best_k]);
+        I + best_k, J + mid + res_k2[best_k]);
   }
   return best;
 }

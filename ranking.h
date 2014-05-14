@@ -32,18 +32,22 @@ struct Ranking {
 };
 
 static inline bool ranking_empty(struct Ranking* restrict heap) {
+  assert(heap->size_ >= 0);
   return heap->size_ == 0;
 }
 
 static inline bool ranking_contains(struct Ranking* restrict heap, int key) {
+  assert(heap->size_ >= 0);
   return heap->position_[key] >= 0;
 }
 
 static inline int ranking_min_key(struct Ranking* restrict heap) {
+  assert(heap->size_ >= 0);
   return heap->key_[0];
 }
 
 static inline RankingValue ranking_min_value(struct Ranking* restrict heap) {
+  assert(heap->size_ >= 0);
   return heap->value_[0];
 }
 
@@ -149,10 +153,10 @@ static inline void ranking_increase(struct Ranking* restrict heap, int key,
   ranking_heapify(heap, i);
 }
 
-static inline void ranking_fprintf(FILE* filep, struct Ranking* restrict heap)
-{
+static inline void ranking_fprintf(FILE* filep, const struct Ranking* restrict
+    heap) {
   assert(heap->size_ > 0);
-  fprintf(filep, "Ranking: %p\n\tkeys:", (void*) heap);
+  fprintf(filep, "Ranking: %p\n\tkeys:\t", (void*) heap);
   int max_key = -1;
   for (int i = 0; i < heap->size_; ++i) {
     fprintf(filep, "\t%d", heap->key_[i]);
@@ -164,8 +168,8 @@ static inline void ranking_fprintf(FILE* filep, struct Ranking* restrict heap)
   for (int i = 0; i < heap->size_; ++i) {
     fprintf(filep, "\t%lld", heap->value_[i]);
   }
-  fprintf(filep, "\n\tpositions:\t");
-  for (int i = 0; i < max_key; ++i) {
+  fprintf(filep, "\n\tpositions:");
+  for (int i = 0; i <= max_key; ++i) {
     fprintf(filep, "\t%d", heap->position_[i]);
   }
   fprintf(filep, "\n");

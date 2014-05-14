@@ -26,6 +26,9 @@ static inline void minsum_prepare(
     int* restrict list_ptr                  /* k_count x j_count */
     ) {
   SUPPRESS_UNUSED(i_count);
+  assert(i_count > 0);
+  assert(k_count > 0);
+  assert(j_count > 0);
   minsum_A = A;
   minsum_B = B;
   for (int k = 0; k < k_count; ++k) {
@@ -47,8 +50,10 @@ static inline void minsum_find_one(
     long long* restrict result_sum,         /* j_count */
     int* restrict result_k                  /* j_count */
     ) {
-  void* const temp_ptr = malloc(k_count * (sizeof(int) + sizeof(long long)) +
-      j_count * sizeof(bool));
+  assert(k_count > 0);
+  assert(j_count > 0);
+  void* const temp_ptr = malloc(k_count * sizeof(int) + j_count *
+      sizeof(bool));
   int* cand = temp_ptr;                               /* k_count */
   memset(cand, 0, k_count);
 #define CAND_GET(k) LIST_ARR(k, cand[k])
@@ -57,46 +62,42 @@ static inline void minsum_find_one(
 #define CAND_HAS_NEXT(k) (cand[k] < j_count - 1)
   bool* solved = (bool*) (cand + k_count);            /* j_count */
   memset(solved, 0, j_count);
-  long long* dist = (long long*) (solved + j_count);  /* k_count */
   struct Ranking queue;                               /* k_count */
   ranking_create(&queue, k_count, k_count);
   queue.size_ = k_count;
   for (int k = 0; k < k_count; ++k) {
     queue.key_[k] = k;
-    dist[k] = A(i_ind, k) + B(k, CAND_GET(k));
-    queue.value_[k] = dist[k];
+    queue.value_[k] = A(i_ind, k) + B(k, CAND_GET(k));
   }
   ranking_rebuild(&queue);
   int solved_count = 0;
-  const double offset = k_count + k_count / log((double) k_count);
   while (solved_count < j_count) {
+    assert(!ranking_empty(&queue));
     int k = ranking_min_key(&queue);
-    long long d_k = ranking_min_value(&queue);
-    ranking_pop(&queue);
-    int j = CAND_GET(k);
     assert(CAND_HAS(k));
-    assert(d_k == dist[k]);
+    int j = CAND_GET(k);
+    long long d_k = ranking_min_value(&queue);
     assert(d_k == A(i_ind, k) + B(k, j));
     if (!solved[j]) {
       ++solved_count;
       solved[j] = true;
       result_sum[j] = d_k;
       result_k[j] = k;
-      /* Update for j makes no sense. */
     }
-    /* The update for k. */
-    int w = CAND_GET(k);
-    int limit = (int) ((double) k_count / (offset - solved_count)) + 1;
-    for (; solved[w] && CAND_HAS_NEXT(k) && limit >= 0; --limit) {
-      w = CAND_NEXT(k);
-      assert(CAND_HAS(k));
+    // FIXME(stupaq)
+    //const double offset = k_count + k_count / log((double) k_count);
+    //int limit = (int) ((double) k_count / (offset - solved_count)) + 1;
+    assert(j == CAND_GET(k));
+    while (CAND_HAS_NEXT(k) && solved[j]) {
+      j = CAND_NEXT(k);
     }
-    long long new_dist = A(i_ind, k) + B(k, w);
-    dist[w] = (new_dist < dist[w]) ? new_dist : dist[w];
-    if (ranking_contains(&queue, k)) {
+    assert(ranking_contains(&queue, k));
+    if (!solved[j]) {
+      long long new_dist = A(i_ind, k) + B(k, j);
       ranking_increase(&queue, k, new_dist);
     } else {
-      ranking_push(&queue, k, new_dist);
+      assert(k == ranking_min_key(&queue));
+      ranking_pop(&queue);
     }
   }
 #undef CAND_NEXT
