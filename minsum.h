@@ -26,6 +26,8 @@ static inline void minsum_prepare(
     int* restrict list_ptr                  /* k_count x j_count */
     ) {
   SUPPRESS_UNUSED(i_count);
+  // FIXME(stupaq) for now...
+#if 0
   minsum_A = A;
   minsum_B = B;
   for (int k = 0; k < k_count; ++k) {
@@ -36,6 +38,7 @@ static inline void minsum_prepare(
     qsort(&LIST_ARR(k, 0), j_count, sizeof(int),
         (int (*)(const void*, const void*)) minsum_prepare_list_cmp);
   }
+#endif
 }
 
 // TODO(stupaq) this is a modification of the new algorithm, needs proof
@@ -47,6 +50,20 @@ static inline void minsum_find_one(
     long long* restrict result_sum,         /* j_count */
     int* restrict result_k                  /* j_count */
     ) {
+  assert(k_count > 0 && j_count > 0);
+  for (int j = 0; j < j_count; ++j) {
+    result_sum[j] = A(i_ind, 0) + B(0, j);
+    result_k[j] = 0;
+    for (int k = 1; k < k_count; ++k) {
+      long long sum = A(i_ind, k) + B(k, j);
+      if (result_sum[j] > sum) {
+        result_sum[j] = sum;
+        result_k[j] = k;
+      }
+    }
+  }
+  // FIXME(stupaq) for now...
+#if 0
   void* const temp_ptr = malloc(k_count * (sizeof(int) + sizeof(long long)) +
       j_count * sizeof(bool));
   int* cand = temp_ptr;                               /* k_count */
@@ -102,6 +119,7 @@ static inline void minsum_find_one(
 #undef CAND_GET
   ranking_free(&queue);
   free(temp_ptr);
+#endif
 }
 
 #undef LIST_ARR
