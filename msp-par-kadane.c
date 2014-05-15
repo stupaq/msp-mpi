@@ -1,11 +1,7 @@
 /** Copyright (C) Mateusz Machalica, 2014. */
 
-#if OPTIMIZE >= 1
-#define NDEBUG
-#endif
-#if OPTIMIZE <= 1
-#define MICROPROF_ENABLE
-#define MICROPROF_IS_PROFILED (my_rank == kRootRank)
+#ifndef NDEBUG
+#pragma message "Assertions enabled!"
 #endif
 
 #include <assert.h>
@@ -16,6 +12,8 @@
 #include <string.h>
 #include <mpi.h>
 #include "./matgen.h"
+#define MICROPROF_ENABLE
+#define MICROPROF_IS_PROFILED (my_rank == kRootRank)
 #include "./microprof.h"
 
 #define SWAP_ASSIGN(_type_, _x_, _y_) do {  \

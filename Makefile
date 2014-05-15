@@ -1,13 +1,11 @@
-
-# Defines that directly influence implementation
-OPTIMIZE	?= 0
-
 # Platform specific options
 ifneq ($(shell hostname), notos)
 CFLAGS		+= -std=gnu99 -Wall -Wextra
 endif
 
-CFLAGS		+= -O3 -DOPTIMIZE=$(OPTIMIZE)
+CFLAGS		+= -O3
+# TODO(stupaq) disable assertions for prod
+#CFLAGS		+= -DNDEBUG
 CLINT		?= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int,-readability/casting
 
 MPICC		:= mpicc

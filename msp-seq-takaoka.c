@@ -1,10 +1,7 @@
 /** Copyright (C) Mateusz Machalica, 2014. */
 
-#if OPTIMIZE >= 1
-#define NDEBUG
-#endif
-#if OPTIMIZE <= 1
-#define MICROPROF_ENABLE
+#ifndef NDEBUG
+#pragma message "Assertions enabled!"
 #endif
 
 #include <assert.h>
@@ -15,6 +12,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include "./matgen.h"
+#define MICROPROF_ENABLE
 #include "./microprof.h"
 #include "./minsum.h"
 
