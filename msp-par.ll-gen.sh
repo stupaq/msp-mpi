@@ -22,11 +22,11 @@ cat <<EOF
 # @ environment = COPY_ALL
 # @ wall_clock_limit = 00:15:00
 # @ notification = error
-# @ notify_user = `whoami`@students.mimuw.edu.pl
+# @ notify_user = \$(user)@icm.edu.pl
 # @ job_type = bluegene
 # @ bg_size = `echo $(( ($P + $C - 1) / $C ))`
 # @ queue
 echo "Started at" \`date\`
-mpirun -np ${P} -mode ${mode} msp-par.exe ${M} ${N} ${S}
+mpirun -exe msp-par.exe -np ${P} -mode ${mode} -args "${M} ${N} ${S}"
 echo "Finished at" \`date\`
 EOF

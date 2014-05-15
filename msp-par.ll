@@ -6,10 +6,10 @@
 # @ environment = COPY_ALL
 # @ wall_clock_limit = 00:15:00
 # @ notification = error
-# @ notify_user = mm305678@students.mimuw.edu.pl
+# @ notify_user = $(user)@icm.edu.pl
 # @ job_type = bluegene
 # @ bg_size = 8
 # @ queue
 echo "Started at" `date`
-mpirun -np 32 -mode VN msp-par.exe 1000 1000 123
+mpirun -exe msp-par.exe -np 32 -mode VN -args "1000 1000 123"
 echo "Finished at" `date`
