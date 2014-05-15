@@ -1,10 +1,10 @@
-# Platform specific options
 ifneq ($(shell hostname), notos)
 CFLAGS		+= -std=gnu99 -Wall -Wextra
 endif
 
 CFLAGS		+= -O3 -DNDEBUG
-CLINT		?= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int,-readability/casting
+LDLIBS		+= -lm
+CLINT		:= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int,-readability/casting
 
 MPICC		:= mpicc
 
@@ -19,10 +19,10 @@ MATGEN_FILE	:= $(MATGEN_TYPE).o
 all: $(SEQUENTIAL:.c=.exe) $(PARALLEL:.c=.exe)
 
 %.exe: %.o $(MATGEN_FILE)
-	$(MPICC) $(CFLAGS) -o $@ $^
+	$(MPICC) $(CFLAGS) -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 %.o: %.c $(HEADERS) Makefile
-	$(MPICC) $(CFLAGS) -c -o $@ $<
+	$(MPICC) $(CFLAGS) -c -o $@ $< $(LDFLAGS) $(LDLIBS)
 
 clean:
 	rm -f *.o *core *~ *.out *.err *.exe
