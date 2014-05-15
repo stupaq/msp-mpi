@@ -98,6 +98,7 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
   int* res_l1 = (int*) (res_sum1 + N);
   long long* res_sum2 = (long long*) (res_l1 + N);
   int* res_l2 = (int*) (res_sum2 + N);
+  void* const internal_temp_ptr = (void*) (res_l2 + N);
   /* Prepare lists. */
   msp_horizontal_I = I;
   msp_horizontal_J = J;
@@ -109,11 +110,11 @@ static struct PartialSum msp_horizontal(int I, int J, int K, int L, int
     /* Optimize first component. */
     msp_horizontal_I = I;
     minsum_find_one(msp_horizontal_A1, msp_horizontal_B1, j, mid, N, list1,
-        res_sum1, res_l1);
+        res_sum1, res_l1, internal_temp_ptr);
     /* Optimize second component. */
     msp_horizontal_I += mid;
     minsum_find_one(msp_horizontal_A2, msp_horizontal_B2, j, M - mid, N,
-        list2, res_sum2, res_l2);
+        list2, res_sum2, res_l2, internal_temp_ptr);
     /* Find best sum of components. */
     int best_l = j;
     assert(best_l < N);
@@ -174,6 +175,7 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
   int* res_k1 = (int*) (res_sum1 + M);
   long long* res_sum2 = (long long*) (res_k1 + M);
   int* res_k2 = (int*) (res_sum2 + M);
+  void* const internal_temp_ptr = (void*) (res_k2 + M);
   /* Prepare lists. */
   msp_vertical_I = I;
   msp_vertical_J = J;
@@ -185,11 +187,11 @@ static struct PartialSum msp_vertical(int I, int J, int K, int L, int mid_abs) {
     /* Optimize first component. */
     msp_vertical_J = J;
     minsum_find_one(msp_vertical_A1, msp_vertical_B1, i, mid, M, list1,
-        res_sum1, res_k1);
+        res_sum1, res_k1, internal_temp_ptr);
     /* Optimize second component. */
     msp_vertical_J += mid;
     minsum_find_one(msp_vertical_A2, msp_vertical_B2, i, N - mid, M, list2,
-        res_sum2, res_k2);
+        res_sum2, res_k2, internal_temp_ptr);
     /* Find best sum of components. */
     int best_k = i;
     assert(best_k < M);
@@ -278,7 +280,7 @@ int main(int argc, char * argv[]) {
   matrix_ptr = (long long*) malloc(matrix_height * matrix_width * sizeof(long
         long));
   temp_ptr = malloc(2 * matrix_height * matrix_width * sizeof(int) +
-      2 * (matrix_height + matrix_width) * (sizeof(long long) + sizeof(int)));
+      4 * (matrix_height + matrix_width) * (sizeof(long long) + sizeof(int)));
   if (matrix_ptr == NULL) {
     fprintf(stderr, "ERROR: Unable to create the matrix!\n");
     err = 2;

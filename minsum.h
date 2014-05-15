@@ -47,12 +47,11 @@ static inline void minsum_find_one(
     const int i_ind, const int k_count, const int j_count,
     int* restrict list_ptr,                 /* k_count x j_count */
     long long* restrict result_sum,         /* j_count */
-    int* restrict result_k                  /* j_count */
+    int* restrict result_k,                 /* j_count */
+    void* const temp_ptr /* k_count * sizeof(int) + j_count * sizeof(bool) */
     ) {
   assert(k_count > 0);
   assert(j_count > 0);
-  void* const temp_ptr = malloc(k_count * sizeof(int) + j_count *
-      sizeof(bool));
   int* cand = temp_ptr;                               /* k_count */
   memset(cand, 0, k_count * sizeof(int));
 #define CAND_GET(k) LIST_ARR(k, cand[k])
@@ -111,7 +110,6 @@ static inline void minsum_find_one(
 #undef CAND_NEXT
 #undef CAND_GET
   ranking_free(&queue);
-  free(temp_ptr);
 }
 
 #undef LIST_ARR
