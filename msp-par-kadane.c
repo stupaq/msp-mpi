@@ -75,7 +75,7 @@ static void print_usage(char const* prog) {
 }
 
 int main(int argc, char * argv[]) {
-  int err = 0;
+  int tmp, err = 0;
   matgen_t* generator = NULL;
   long long* matrix_ptr = NULL;
 
@@ -83,9 +83,10 @@ int main(int argc, char * argv[]) {
   init_mpi(&argc, &argv);
 
   const int kRootRank = 0;
-  int num_processes, my_rank;
-  MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
-  MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &tmp);
+  const int num_processes = tmp;
+  MPI_Comm_rank(MPI_COMM_WORLD, &tmp);
+  const int my_rank = tmp;
 
   /* PARSING ARGUMENTS */
   if (argc != 4) {
@@ -205,26 +206,27 @@ int main(int argc, char * argv[]) {
   for (int dispatch = 0, i = 1; i <= num_rows; ++i) {
     for (int k = i; k <= num_rows; ++k) {
       assert(i > 0 && k >= i);
-      dispatch++;
+      ++dispatch;
       if (dispatch == num_processes) {
         dispatch = 0;
       }
-      if (dispatch == my_rank) {
-#define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
-        long long current = -1, nextDiff = COLUMN_SUM(1);
-        for (int j = 1, l = 1; l <= num_columns; ++l) {
-          assert(j > 0 && l >= j);
-          if (current < 0) {
-            current = 0;
-            j = l;
-          }
-          current += nextDiff;
-          if (l == num_columns || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
-            UPDATE_BEST(current, i, j, k, l);
-          }
-        }
-#undef COLUMN_SUM
+      if (dispatch != my_rank) {
+        continue;
       }
+#define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
+      long long current = -1, nextDiff = COLUMN_SUM(1);
+      for (int j = 1, l = 1; l <= num_columns; ++l) {
+        assert(j > 0 && l >= j);
+        if (current < 0) {
+          current = 0;
+          j = l;
+        }
+        current += nextDiff;
+        if (l == num_columns || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
+          UPDATE_BEST(current, i, j, k, l);
+        }
+      }
+#undef COLUMN_SUM
     }
   }
 #undef UPDATE_BEST

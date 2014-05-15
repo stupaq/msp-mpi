@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
 extra=""
-while getopts ":m:n:s:v:A:Q" opt; do
+while getopts ":m:n:s:v:q:A:Q" opt; do
   case $opt in
     m) export M=$OPTARG ;;
     n) export N=$OPTARG ;;
     s) export S=$OPTARG ;;
     v) export V=$OPTARG ;;
+    q) export Q=$OPTARG ;;
     A) extra="$extra $OPTARG" ;;
     Q) quiet='yes' ;;
     \?)

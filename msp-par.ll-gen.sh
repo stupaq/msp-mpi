@@ -5,6 +5,7 @@ N=${N:-1000}
 P=${P:-32}
 C=${C:-4}
 S=${S:-123}
+Q=${Q:-kdm}
 
 case $C in
   1) mode=SMP ;;
@@ -15,7 +16,7 @@ esac
 cat <<EOF
 # @ job_name = MSP_`whoami`_${M}x${N}
 # @ account_no = G52-5
-# @ class = kdm
+# @ class = ${Q}
 # @ error = MSP_`whoami`_${M}x${N}.err
 # @ output = MSP_`whoami`_${M}x${N}.out
 # @ environment = COPY_ALL

@@ -3,12 +3,13 @@
 M=${M:-1000}
 N=${N:-1000}
 S=${S:-123}
+Q=${Q:-kdm}
 V=${V:-naive}
 
 cat <<EOF
 # @ job_name = MSP-${V}_`whoami`_${M}x${N}
 # @ account_no = G52-5
-# @ class = kdm
+# @ class = ${Q}
 # @ error = MSP-${V}_`whoami`_${M}x${N}.err
 # @ output = MSP-${V}_`whoami`_${M}x${N}.out
 # @ environment = COPY_ALL
