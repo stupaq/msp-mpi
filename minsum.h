@@ -41,7 +41,6 @@ static inline void minsum_prepare(
   }
 }
 
-// TODO(stupaq) this is a modification of the new algorithm, needs proof
 static inline void minsum_find_one(
     long long (*A) (int, int),              /* i_count x k_count */
     long long (*B) (int, int),              /* k_count x j_count */
@@ -72,12 +71,14 @@ static inline void minsum_find_one(
   }
   ranking_rebuild(&queue);
   int solved_count = 0;
+  const double the_count = j_count,
+        adjustment = the_count + the_count / log(the_count);
   while (solved_count < j_count) {
     assert(!ranking_empty(&queue));
-    int k = ranking_min_key(&queue);
+    const int k = ranking_min_key(&queue);
     assert(CAND_HAS(k));
     int j = CAND_GET(k);
-    long long d_k = ranking_min_value(&queue);
+    const long long d_k = ranking_min_value(&queue);
     assert(d_k == A(i_ind, k) + B(k, j));
     if (!solved[j]) {
       ++solved_count;
@@ -85,20 +86,26 @@ static inline void minsum_find_one(
       result_sum[j] = d_k;
       result_k[j] = k;
     }
-    // FIXME(stupaq)
-    //const double offset = k_count + k_count / log((double) k_count);
-    //int limit = (int) ((double) k_count / (offset - solved_count)) + 1;
+    int limit = (int) (the_count / (adjustment - solved_count)) + 1;
+    assert(limit  > 0);
     assert(j == CAND_GET(k));
-    while (CAND_HAS_NEXT(k) && solved[j]) {
-      j = CAND_NEXT(k);
-    }
-    assert(ranking_contains(&queue, k));
-    if (!solved[j]) {
-      long long new_dist = A(i_ind, k) + B(k, j);
-      ranking_increase(&queue, k, new_dist);
-    } else {
+    while(true) {
+      assert(CAND_HAS(k));
       assert(k == ranking_min_key(&queue));
-      ranking_pop(&queue);
+      if (!solved[j] || limit == 0) {
+        long long new_dist = A(i_ind, k) + B(k, j);
+        ranking_increase_min(&queue, new_dist);
+        break;
+      } else if (!CAND_HAS_NEXT(k)) {
+        ranking_pop(&queue);
+        break;
+      } else {
+        assert(solved[j]);
+        assert(limit > 0);
+        assert(CAND_HAS_NEXT(k));
+        j = CAND_NEXT(k);
+        --limit;
+      }
     }
   }
 #undef CAND_NEXT

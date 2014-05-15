@@ -153,6 +153,14 @@ static inline void ranking_increase(struct Ranking* restrict heap, int key,
   ranking_heapify(heap, i);
 }
 
+static inline void ranking_increase_min(struct Ranking* restrict heap,
+    RankingValue new_value) {
+  assert(heap->size_ > 0);
+  assert(new_value >= ranking_min_value(heap));
+  heap->value_[0] = new_value;
+  ranking_heapify(heap, 0);
+}
+
 static inline void ranking_fprintf(FILE* filep, const struct Ranking* restrict
     heap) {
   assert(heap->size_ > 0);
