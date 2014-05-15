@@ -250,9 +250,6 @@ int main(int argc, char * argv[]) {
     SWAP_ASSIGN(int, best.k, best.l);
   }
 
-  MICROPROF_INFO("Rank %d\t |(%d,%d),(%d,%d)|=%lld\n",
-      my_rank, best.i, best.j, best.k, best.l, best.sum);
-
   MICROPROF_START(reduction);
   MPI_Reduce(my_rank == kRootRank ? MPI_IN_PLACE : &best, &best, 1,
       partial_sum_t, max_partial_sum_op, kRootRank, MPI_COMM_WORLD);
