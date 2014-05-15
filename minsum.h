@@ -62,7 +62,7 @@ static inline void minsum_find_one(
   bool* solved = (bool*) (cand + k_count);            /* j_count */
   memset(solved, 0, j_count * sizeof(bool));
   struct Ranking queue;                               /* k_count */
-  ranking_create(&queue, k_count, k_count);
+  ranking_create(&queue, k_count);
   queue.size_ = k_count;
   for (int k = 0; k < k_count; ++k) {
     assert(cand[k] == 0);

@@ -19,7 +19,6 @@
   heap->size_ = -1;           \
   heap->key_ = NULL;          \
   heap->value_ = NULL;        \
-  heap->position_ = NULL;     \
 } while (false);
 
 typedef long long RankingValue;
@@ -27,18 +26,12 @@ typedef long long RankingValue;
 struct Ranking {
   int size_;
   int* key_;
-  int* position_;
   RankingValue* value_;
 };
 
 static inline bool ranking_empty(struct Ranking* restrict heap) {
   assert(heap->size_ >= 0);
   return heap->size_ == 0;
-}
-
-static inline bool ranking_contains(struct Ranking* restrict heap, int key) {
-  assert(heap->size_ >= 0);
-  return heap->position_[key] >= 0;
 }
 
 static inline int ranking_min_key(struct Ranking* restrict heap) {
@@ -55,12 +48,8 @@ static inline void ranking_swap_entries(struct Ranking* restrict heap, int i,
     int j) {
   assert(heap->size_ > i && i >= 0);
   assert(heap->size_ > j && j >= 0);
-  assert(heap->position_[heap->key_[i]] == i);
-  assert(heap->position_[heap->key_[j]] == j);
   SWAP_ASSIGN(int, heap->key_[i], heap->key_[j]);
   SWAP_ASSIGN(int, heap->value_[i], heap->value_[j]);
-  heap->position_[heap->key_[i]] = i;
-  heap->position_[heap->key_[j]] = j;
 }
 
 static inline void ranking_heapify(struct Ranking* restrict heap, const int i) {
@@ -85,28 +74,21 @@ static inline void ranking_free(struct Ranking* restrict heap) {
 }
 
 static inline int ranking_create(struct Ranking* restrict heap, const int
-    capacity, const int keys_range) {
+    capacity) {
   unsigned char* ptr = (unsigned char*) malloc(capacity * sizeof(int) +
-      capacity * sizeof(RankingValue) + keys_range * sizeof(int));
+      capacity * sizeof(RankingValue));
   if (!ptr) {
     RESET_HEAP(heap);
     return -1;
   }
   heap->size_ = 0;
   heap->key_ = (int*) ptr;
-  heap->value_ = (long long*) (heap->key_ + keys_range);
-  heap->position_ = (int*) (heap->value_ + capacity);
-  for (int i = 0; i < keys_range; ++i) {
-    heap->position_[i] = -1;
-  }
+  heap->value_ = (long long*) (heap->key_ + capacity);
   return 0;
 }
 
 static inline void ranking_rebuild(struct Ranking* restrict heap) {
   assert(heap->size_ >= 0);
-  for (int i = 0; i < heap->size_; ++i) {
-    heap->position_[heap->key_[i]] = i;
-  }
   for (int i = heap->size_ / 2; i >= 0; --i) {
     ranking_heapify(heap, i);
   }
@@ -115,11 +97,9 @@ static inline void ranking_rebuild(struct Ranking* restrict heap) {
 static inline void ranking_push(struct Ranking* restrict heap, int key,
     RankingValue value) {
   assert(heap->size_ >= 0);
-  assert(!ranking_contains(heap, key));
   int i = heap->size_;
   heap->key_[i] = key;
   heap->value_[i] = value;
-  heap->position_[heap->key_[i]] = i;
   ++heap->size_;
   while (i > 0) {
     int p = PARENT(i);
@@ -134,23 +114,11 @@ static inline void ranking_push(struct Ranking* restrict heap, int key,
 static inline void ranking_pop(struct Ranking* restrict heap) {
   assert(heap->size_ > 0);
   --heap->size_;
-  heap->position_[heap->key_[0]] = -1;
   if (heap->size_ > 0) {
     heap->key_[0] = heap->key_[heap->size_];
     heap->value_[0] = heap->value_[heap->size_];
-    heap->position_[heap->key_[0]] = 0;
     ranking_heapify(heap, 0);
   }
-}
-
-static inline void ranking_increase(struct Ranking* restrict heap, int key,
-    RankingValue new_value) {
-  assert(heap->size_ > 0);
-  assert(ranking_contains(heap, key));
-  int i = heap->position_[key];
-  assert(heap->value_[i] <= new_value);
-  heap->value_[i] = new_value;
-  ranking_heapify(heap, i);
 }
 
 static inline void ranking_increase_min(struct Ranking* restrict heap,
@@ -175,10 +143,6 @@ static inline void ranking_fprintf(FILE* filep, const struct Ranking* restrict
   fprintf(filep, "\n\tvalues:\t");
   for (int i = 0; i < heap->size_; ++i) {
     fprintf(filep, "\t%lld", heap->value_[i]);
-  }
-  fprintf(filep, "\n\tpositions:");
-  for (int i = 0; i <= max_key; ++i) {
-    fprintf(filep, "\t%d", heap->position_[i]);
   }
   fprintf(filep, "\n");
 }
