@@ -15,11 +15,11 @@ cat <<EOF
 # @ environment = COPY_ALL
 # @ wall_clock_limit = 00:15:00
 # @ notification = error
-# @ notify_user = `whoami`@students.mimuw.edu.pl
+# @ notify_user = \$(user)@icm.edu.pl
 # @ job_type = bluegene
 # @ bg_size = 1
 # @ queue
 echo "Started at" \`date\`
-./msp-seq-${V}.exe ${M} ${N} ${S}
+mpirun -exe msp-seq-${V}.exe -np 1 -mode SMP -args "${M} ${N} ${S}"
 echo "Finished at" \`date\`
 EOF

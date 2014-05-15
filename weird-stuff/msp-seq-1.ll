@@ -6,7 +6,7 @@
 # @ environment = COPY_ALL
 # @ wall_clock_limit = 00:15:00
 # @ notification = error
-# @ notify_user = mm305678@students.mimuw.edu.pl
+# @ notify_user = $(user)@icm.edu.pl
 # @ job_type = bluegene
 # @ bg_size = 1
 # @ queue
