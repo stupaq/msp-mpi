@@ -5,10 +5,31 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <math.h>
 #include "./ranking.h"
 
 #define LIST_ARR(_i_, _j_) list_ptr[(_i_) * j_count + (_j_)]
+
+#include <stdint.h>
+
+/* This is a fast logarithm approximation, the main idea of exploiting IEEE
+ * floating point representation comes from:
+ * http://www.dctsystems.co.uk/Software/power.html
+ * with further improvements from:
+ * http://www.machinedlearnings.com/2011/06/fast-approximate-logarithm-exponential.html
+ */
+static inline float fastlog2(float x) {
+  union { float f; uint32_t i; } vx = { x };
+  union { uint32_t i; float f; } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
+  float y = vx.i;
+  y *= 1.1920928955078125e-7f;
+  return y - 124.22551499f
+    - 1.498030302f * mx.f
+    - 1.72587999f / (0.3520887068f + mx.f);
+}
+
+static inline float fastlog(float x) {
+  return 0.69314718f * fastlog2 (x);
+}
 
 static int minsum_k;
 static long long (*minsum_A) (int, int);
@@ -70,8 +91,8 @@ static inline void minsum_find_one(
   }
   ranking_rebuild(&queue);
   int solved_count = 0;
-  const double the_count = j_count,
-        adjustment = the_count + the_count / log(the_count);
+  const float the_count = j_count,
+        adjustment = the_count + the_count / fastlog(the_count);
   while (solved_count < j_count) {
     assert(!ranking_empty(&queue));
     const int k = ranking_min_key(&queue);

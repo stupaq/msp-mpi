@@ -3,7 +3,6 @@ CFLAGS		+= -std=gnu99 -Wall -Wextra
 endif
 
 CFLAGS		+= -O3 -DNDEBUG
-LDLIBS		+= -lm
 CLINT		:= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int,-readability/casting
 
 MPICC		:= mpicc
