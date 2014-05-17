@@ -1,1 +1,1 @@
-msp-par-kadane.c
+msp-par-hybrid.c

@@ -158,10 +158,8 @@ int main(int argc, char * argv[]) {
   for (int j = 1; j <= num_columns; ++j) {
     MATRIX_ARR(0, j) = 0;
   }
-  // TODO(stupaq)
   // There is an obvious argument why local computation is no slower than
   // distributed one - in the end each process has to write O(M * N) values.
-  // The only way to go is to determine which data each process needs exactly.
   const bool local_prefix_sums = true;
   if (local_prefix_sums) {
     for (int i = 1; i <= num_rows; ++i) {

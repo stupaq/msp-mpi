@@ -41,8 +41,14 @@ void max_partial_sum(struct PartialSum* in, struct PartialSum* inout, int* len,
 }
 
 struct SubSolution {
-  long long T, P, S, M;
-  int Pj, Pl, Sj, Sl, Mj, Ml;
+  long long T;
+  /* Interleaving data makes assignments faster. */
+  long long P;
+  int Pj, Pl;
+  long long S;
+  int Sj, Sl;
+  long long M;
+  int Mj, Ml;
 };
 
 static MPI_Datatype sub_solution_t;
@@ -52,69 +58,89 @@ void join_sub_solution(struct SubSolution* in, struct SubSolution* inout, int*
     len, MPI_Datatype* type) {
   SUPPRESS_UNUSED(type);
   for (int i = 0; i < *len; ++i, ++in, ++inout) {
-    // TODO
+    printf("%d %d\n", in->Sl, inout->Pj);
+    assert(in->Sl + 1 == inout->Pj);
+    /* Maximum subsequence. */
+    if (inout->M < in->M) {
+      inout->M = in->M;
+      inout->Mj = in->Mj;
+      inout->Ml = in->Ml;
+    }
+    if (inout->M < in->S + inout->P) {
+      inout->M = in->S + inout->P;
+      inout->Mj = in->Sj;
+      inout->Ml = inout->Pl;
+    }
+    assert(inout->Mj <= inout->Ml);
+    /* Maximum prefix. */
+    if (in->P < in->T + inout->P) {
+      inout->P = in->T + inout->P;
+      inout->Pj = in->Pj;
+      inout->Pl = inout->Pl;
+    } else {
+      assert(in->P >= in->T + inout->P);
+      inout->P = in->P;
+      inout->Pj = in->Pj;
+      inout->Pl = in->Pl;
+    }
+    assert(inout->Pj == in->Pj);
+    /* Maximum suffix. */
+    assert(inout->Sl == inout->Sl);
+    if (in->S + inout->T > inout->S) {
+      inout->S = in->S + inout->T;
+      inout->Sj = in->Sj;
+    } else {
+      assert(in->S + inout->T <= inout->S);
+      assert(inout->S == inout->S);
+      assert(inout->Sj == inout->Sj);
+    }
+    /* Total sum. */
+    inout->T += in->T;
   }
 }
 
 static inline void init_mpi(int* argc, char** argv[]) {
   MPI_Init(argc, argv);
-  /* PartialSum */
-  {
-    int block_lengths[] = { 1, 1, 1, 1, 1 };
-    MPI_Aint offsets[] = {
-      offsetof(struct PartialSum, sum),
-      offsetof(struct PartialSum, i),
-      offsetof(struct PartialSum, j),
-      offsetof(struct PartialSum, k),
-      offsetof(struct PartialSum, l)
-    };
-    MPI_Datatype types[] = {
-      MPI_LONG_LONG_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT
-    };
-    MPI_Type_create_struct(5, block_lengths, offsets, types, &partial_sum_t);
-    MPI_Type_commit(&partial_sum_t);
-    MPI_Op_create((void(*) (void*, void*, int*, int*)) max_partial_sum, true,
-        &max_partial_sum_op);
-  }
-  /* SubSolution */
-  {
-    int block_lengths[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-    MPI_Aint offsets[] = {
-      offsetof(struct SubSolution, T),
-      offsetof(struct SubSolution, P),
-      offsetof(struct SubSolution, S),
-      offsetof(struct SubSolution, M),
-      offsetof(struct SubSolution, Pj),
-      offsetof(struct SubSolution, Pl),
-      offsetof(struct SubSolution, Sj),
-      offsetof(struct SubSolution, Sl),
-      offsetof(struct SubSolution, Mj),
-      offsetof(struct SubSolution, Ml),
-    };
-    MPI_Datatype types[] = {
-      MPI_LONG_LONG_INT,
-      MPI_LONG_LONG_INT,
-      MPI_LONG_LONG_INT,
-      MPI_LONG_LONG_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-      MPI_INT,
-    };
-    MPI_Type_create_struct(10, block_lengths, offsets, types, &sub_solution_t);
-    MPI_Type_commit(&sub_solution_t);
-    MPI_Op_create((void(*) (void*, void*, int*, int*)) join_sub_solution, false,
-        &join_sub_solution_op);
-  }
+  int block_lengths[] = { 1, 1, 1, 1, 1 };
+  MPI_Aint offsets[] = {
+    offsetof(struct PartialSum, sum),
+    offsetof(struct PartialSum, i),
+    offsetof(struct PartialSum, j),
+    offsetof(struct PartialSum, k),
+    offsetof(struct PartialSum, l)
+  };
+  MPI_Datatype types[] = { MPI_LONG_LONG_INT, MPI_INT, MPI_INT, MPI_INT,
+    MPI_INT };
+  MPI_Type_create_struct(5, block_lengths, offsets, types, &partial_sum_t);
+  MPI_Type_commit(&partial_sum_t);
+  MPI_Op_create((void(*) (void*, void*, int*, int*)) max_partial_sum, true,
+      &max_partial_sum_op);
+
+  int block_lengths1[] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+  MPI_Aint offsets1[] = {
+    offsetof(struct SubSolution, T),
+    offsetof(struct SubSolution, P),
+    offsetof(struct SubSolution, Pj),
+    offsetof(struct SubSolution, Pl),
+    offsetof(struct SubSolution, S),
+    offsetof(struct SubSolution, Sj),
+    offsetof(struct SubSolution, Sl),
+    offsetof(struct SubSolution, M),
+    offsetof(struct SubSolution, Mj),
+    offsetof(struct SubSolution, Ml),
+  };
+  MPI_Datatype types1[] = { MPI_LONG_LONG_INT, MPI_LONG_LONG_INT, MPI_INT,
+    MPI_INT, MPI_LONG_LONG_INT, MPI_INT, MPI_INT, MPI_LONG_LONG_INT, MPI_INT,
+    MPI_INT };
+  MPI_Type_create_struct(10, block_lengths1, offsets1, types1, &sub_solution_t);
+  MPI_Type_commit(&sub_solution_t);
+  MPI_Op_create((void(*) (void*, void*, int*, int*)) join_sub_solution, false,
+      &join_sub_solution_op);
 }
 
 static inline void finalize_mpi() {
+  MPI_Op_free(&join_sub_solution_op);
+  MPI_Type_free(&sub_solution_t);
   MPI_Op_free(&max_partial_sum_op);
   MPI_Type_free(&partial_sum_t);
   MPI_Finalize();
@@ -206,23 +232,22 @@ int main(int argc, char * argv[]) {
   /* At this point we also decide which algorithm we should use, generalised
    * Kadane's or the one for degenerate case. */
   MICROPROF_START(column_sums);
-  const bool degenerate = num_rows * (num_rows - 1) / 2 < num_processes;
-  const int columns_per_rank = (num_columns + num_processes - 1) / num_processes;
+  const bool degenerate = num_rows * (num_rows - 1) / 2 < num_processes &&
+    num_columns > 3 * num_processes;
   int my_first_column, my_last_column;
   if (degenerate) {
-    my_first_column = 1 + my_rank * columns_per_rank;
-    my_last_column = (my_rank + 1) * columns_per_rank;
+    my_first_column = 1 + (my_rank * num_columns) / num_processes;
+    my_last_column = ((my_rank + 1 ) * num_columns) / num_processes;
     if (my_last_column > num_columns) {
       my_last_column = num_columns;
     }
-    assert(my_rank == num_processes - 1
-        || my_last_column - my_first_column + 1 == columns_per_rank);
-    assert(my_rank != num_processes - 1
-        || my_last_column - my_first_column + 1 == matrix_width - columns_per_rank);
   } else {
     my_first_column = 1;
     my_last_column = num_columns;
   }
+  assert(1 <= my_first_column);
+  assert(my_first_column <= my_last_column);
+  assert(my_last_column <= num_columns);
 
   /* Prefix sums of our subset of columns. */
   for (int j = my_first_column; j <= my_last_column; ++j) {
@@ -235,7 +260,10 @@ int main(int argc, char * argv[]) {
   }
   MICROPROF_END(column_sums);
 
-  struct PartialSum best = { MATRIX_ARR(1, 1) - MATRIX_ARR(0, 1), 1, 1, 1, 1 };
+  struct PartialSum best = {
+    MATRIX_ARR(1, my_first_column) - MATRIX_ARR(0, my_first_column),
+    1, my_first_column, 1, my_first_column
+  };
 #define UPDATE_BEST(_current_, _i_, _j_, _k_, _l_) \
   if (best.sum < _current_) {                         \
     best.sum = _current_;                             \
@@ -251,13 +279,16 @@ int main(int argc, char * argv[]) {
         assert(i > 0 && k >= i);
 #define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
         struct SubSolution local = {
-          /* T, P, S, M */
-          0LL, 0LL, 0LL, COLUMN_SUM(my_first_column),
-          /* Pj, Pl, Sj, Sl */
-          my_first_column, my_first_column - 1, my_last_column + 1, my_last_column,
-          /* Mj, Ml */
-          my_first_column, my_first_column
+          /* T */
+          0LL,
+          /* P, Pj, Pl */
+          COLUMN_SUM(my_first_column), my_first_column, my_first_column,
+          /* S, Sj, Sl */
+          COLUMN_SUM(my_last_column), my_last_column, my_last_column,
+          /* M, Mj, Ml */
+          COLUMN_SUM(my_first_column), my_first_column, my_first_column
         };
+        /* Forward run of 1D Kadane's algorithm. */
         long long current = -1, nextDiff = COLUMN_SUM(my_first_column);
         for (int j = my_first_column, l = j; l <= my_last_column; ++l) {
           local.T += nextDiff;
@@ -273,40 +304,44 @@ int main(int argc, char * argv[]) {
               local.Mj = j;
               local.Ml = l;
             }
-            if (j == my_first_column && current > local.P) {
-              local.P = current;
-              local.Pj = j;
+            if (local.T > local.P) {
+              local.P = local.T;
+              local.Pj = my_first_column;
               local.Pl = l;
             }
           }
+          assert(my_first_column <= local.Pj);
+          assert(local.Pj <= local.Pl);
+          assert(local.Pj == my_first_column);
+          assert(my_first_column <= local.Mj);
+          assert(local.Mj <= local.Ml);
+          assert(local.Ml <= my_last_column);
         }
-        current = -1;
+        /* Maximum suffix sum. */
+        current = 0;
         nextDiff = COLUMN_SUM(my_last_column);
-        for (int j = my_last_column, l = j; l >= my_first_column; --l) {
-          assert(j > 0 && l >= j);
-          if (current < 0) {
-            current = 0;
-            j = l;
-          }
+        for (int j = my_last_column; j >= my_first_column; --j) {
           current += nextDiff;
-          if (l == my_first_column || (nextDiff = COLUMN_SUM(l - 1)) < 0) {
-            if (l == my_last_column && current > local.S) {
+          if (j == my_first_column || (nextDiff = COLUMN_SUM(j - 1)) < 0) {
+            if (current > local.S) {
               local.S = current;
               local.Sj = j;
-              local.Sl = l;
+              local.Sl = my_last_column;
             }
           }
+          assert(my_first_column <= local.Sj);
+          assert(local.Sj <= local.Sl);
+          assert(local.Sl == my_last_column);
         }
-        assert(local.P >= 0);
-        assert(local.S >= 0);
-        assert(local.Pj == my_first_column);
-        assert(local.Sl == my_last_column);
 #undef COLUMN_SUM
         MICROPROF_START(reduction_degenerate);
         MPI_Reduce(my_rank == kRootRank ? MPI_IN_PLACE : &local, &local, 1,
             sub_solution_t, join_sub_solution_op, kRootRank, MPI_COMM_WORLD);
         MICROPROF_END(reduction_degenerate);
-        UPDATE_BEST(local.M, i, local.Mj, k, local.Ml);
+        if (my_rank == kRootRank) {
+          assert(local.Mj <= local.Ml);
+          UPDATE_BEST(local.M, i, local.Mj, k, local.Ml);
+        }
       }
     }
     MICROPROF_END(kadanes_2d_degenerate);
@@ -340,12 +375,26 @@ int main(int argc, char * argv[]) {
 #undef COLUMN_SUM
       }
     }
+    MICROPROF_START(reduction);
+    MPI_Reduce(my_rank == kRootRank ? MPI_IN_PLACE : &best, &best, 1,
+        partial_sum_t, max_partial_sum_op, kRootRank, MPI_COMM_WORLD);
+    MICROPROF_END(reduction);
     MICROPROF_END(kadanes_2d);
   }
 #undef UPDATE_BEST
 
 #ifndef NDEBUG
   {
+    for (int j = 1; j <= num_columns; ++j) {
+      MATRIX_ARR(0, j) = 0;
+    }
+    for (int i = 1; i <= num_rows; ++i) {
+      for (int j = 1; j <= num_columns; ++j) {
+        if (j < my_first_column || my_last_column < j) {
+          MATRIX_ARR(i, j) += MATRIX_ARR(i - 1, j);
+        }
+      }
+    }
     assert(0 < best.i && best.i <= best.k);
     assert(0 < best.j && best.j <= best.l);
     long long sum = 0;
