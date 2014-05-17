@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-extra=""
-while getopts ":m:n:s:v:q:aA:Q" opt; do
+M=${M:-1000}
+N=${N:-1000}
+S=${S:-123}
+V=
+
+while getopts ":m:n:s:v:" opt; do
   case $opt in
     m) export M=$OPTARG ;;
     n) export N=$OPTARG ;;
     s) export S=$OPTARG ;;
     v) export V=$OPTARG ;;
-    q) export Q=$OPTARG ;;
-    a) export A='yes' ;;
-    A) extra="$extra $OPTARG" ;;
-    Q) quiet='yes' ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
       exit 1 ;;
@@ -25,9 +25,6 @@ if [[ -z "$V" ]]; then
   exit 1
 fi
 
-if [[ -z $quiet ]]; then
-  ./msp-seq.ll-gen.sh
-fi
-
-./msp-seq.ll-gen.sh | llsubmit $extra -
+job_name="MSP-${V}_${M}x${N}_S-${S}_seq_run"
+./msp-seq-${V}.exe ${M} ${N} ${S} 1>$job_name.out 2>$job_name.err
 

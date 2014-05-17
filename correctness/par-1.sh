@@ -1,21 +1,10 @@
 #!/usr/bin/env bash
 
-SUBMIT="`dirname $0`/../submit-par.sh"
-REPORT="`dirname $0`/../corr-report.sh"
-ERRS="`dirname $SUBMIT`/*.err"
-
-max_m=4
-max_n=4
-seed=123
-
-rm -f $ERRS
-for m in `seq $max_m`; do
-  for n in `seq $max_n`; do
-    echo "Submitting M=$m N=$n S=$seed"
-    if [[ m -eq $max_m && n -eq $max_n ]]; then
-      extra='-A -s'
-    fi
-    $SUBMIT -m $m -n $n -s $seed -p 4 $extra
+for m in `seq 5`; do
+  for n in `seq 5`; do
+    [[ m -eq 5 && n -eq 5 ]] && extra='-A -s'
+    ./submit-par.sh -m $m -n $n -s 17326 -p 4 -Q $extra
   done
 done
-$REPORT $ERRS
+
+./corr-report.sh *.err

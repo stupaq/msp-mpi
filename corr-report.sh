@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 source "`dirname $0`/commons.sh"
 
-REFERENCE_EXE=./msp-seq-naive.exe
+REFERENCE_EXE=${REFERENCE_EXE:-./msp-seq-naive.exe}
 
 if [[ $# -lt 1 ]]; then
   echo "Missing input files."

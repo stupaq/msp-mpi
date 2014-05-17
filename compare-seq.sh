@@ -45,7 +45,7 @@ for t in "$@"; do
     echo -e "BAD\tinput: ($M,$N,$S) result: $sum expected: $ref"
     errors=$(($errors + 1))
   else
-    echo -e "OK\tinput: ($M,$N,$S) times: $time1 | $time2 (`echo $time1 - $time2 | bc`) "
+    echo -e "OK\tinput: ($M,$N,$S) times: $time1 / $time2 = `echo \"scale=5;$time1/$time2\" | bc`"
   fi
 done
 
