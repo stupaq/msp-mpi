@@ -5,11 +5,10 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "./ranking.h"
 
 #define LIST_ARR(_i_, _j_) list_ptr[(_i_) * j_count + (_j_)]
-
-#include <stdint.h>
 
 /* This is a fast logarithm approximation, the main idea of exploiting IEEE
  * floating point representation comes from:
