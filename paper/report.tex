@@ -1,0 +1,302 @@
+\input{./short-report-include.tex}
+
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\makeheader{Distributed algorithms for the Maximum Subarray problem}{Mateusz Machalica}
+
+\section*{Introduction}
+
+For detailed Maximum Subarray (MSA) problem statement and motivation behind it please refer to \cite{Pearls}.
+Throughout the report we  will consequently denote the input array of size $M \times N$ by $A$.
+Our goal is to design and implement (using the MPI library) an efficient distributed algorithm for the problem.
+Our target implementation platform is BlueGene/P computer.
+Throughout this paper we are working in the \emph{Communicating Sequential Processes} model with a few extra assumptions, some of them are important enough to be highlighted at the very beginning:
+\begin{itemize}
+    \item entire input array fits in the memory of a single process (together with arbitrary intermediate data of linear size),\footnote{Note that linear size means $O(M \cdot N)$ for our problem.}
+    \item the number of processors is limited $P \leq M \cdot N$ and generally considered to be a constant in input size,
+    \item the only allowed parallelisation technique is \emph{distribution}, i.e. we allow sequential processes to share data through message passing only
+    \item we ignore the problem of distributing input array, assuming that each process starts with a full knowledge of the input.
+\end{itemize}
+
+Careful reader will see that these assumptions are slightly unrealistic, especially the one that prevents us from using shared data concurrency.
+It turns out that developed algorithms can be merged into an efficient algorithm in PRAM model -- an opposite approach to parallelism than the one adopted by MPI.
+
+\section*{Overview of sequential algorithms and methods of parallelization}
+
+The intuition is that for $P < M, N$ we can achieve linear speed-up for practically any reasonable algorithm.
+Therefore we should first select the fastest sequential algorithm and then try to parallelize it efficiently.
+By a simple argument -- a simulation of parallel program on a sequential processor -- if we manage to obtain linear scaling for the best sequential algorithm then our parallel algorithm is the best one among all parallel algorithms.
+Above remark holds up to a constant multiplicative factor, but as it turns out we can parallelize all of the discussed algorithms with exactly the same (and negligible) communication cost and negligible sequential processing overhead.
+
+\subsection*{Generalised Kadane's algorithm}
+
+The simple generalisation of Kadane's algorithm for the Maximum Subsequence (MSS) problem turns out to be practically the best algorithm for a wide range of inputs within our size limits.
+The algorithm is described in more details in \cite{Pearls}.
+The main idea lies in a simple one-to-many reduction of two dimensional problem.
+Assuming $M \leq N$ for each pair of indices $i, k \in \set{1, \dots, M} \land i \leq k$ we create a sequence of length $N$, where $j$-th element of the new sequence is equal to $A_{i,j} + A_{i+1,j} + \dots + A_{k,j}$.
+We next use Kadane's algorithm for MSS problem on each such sequence and look for global (i.e. over all pairs $i, k$) maximum subsequence.
+Assuming that maximum subsequence was found to start and end with indices $j \leq l$ respectively in a sequence created for indices $i, k$, we know that the maximum subarray spans from $(i, j)$ to $(k, l)$.
+
+Note that this algorithm can be parallelized with virtually no communication cost for $\frac{M (M - 1)}{2} \geq P$.
+We select a function $f : \set{(i, k) \| i, k \in \set{1, \dots, M} \land i \leq k} \to \set{1, \dots, P}$ and let process number $p$ execute above steps for all pairs $(i, k) \in f^{-1}(p)$.
+We merge results from $P$ processors using parallel reduction, each process contributes optimum over all pairs it has seen and the final result is equal to the maximum over processes' optima.
+Note that we would like $f^{-1}$ to be computable in $O(1)$ time and we require $\exists_{c \in \mathbb{R}_+}{\forall_{x, y \in \set{1, \dots, P}}{||f^{-1}(x)| - |f^{-1}(y)|| \leq c}}$.
+The latter condition ensures that we get linear speedup for $P = O(\frac{M^2})$.
+We return to the analysis of this algorithm in the section where we discuss details of our parallel implementation, we will show that we can find a function $f$ that meets the second condition for $c = 1$ (one cannot do better) and can be used for the purpose of splitting computation across processes without increasing sequential running time significantly.
+The function we use does not necessarily meet the first requirement.
+
+For $M = o(\sqrt{P})$ we need more sophisticated algorithm, we will describe one in the next section.
+
+\subsubsection*{Parallel algorithm for imbalanced arrays}
+
+The problematic case of $M = o(\sqrt{P})$, when we no longer can effectively parallelize the generalization of Kadane's algorithm) needs special treatment.
+The worst possible instance for previously discussed algorithm is the one where $M = 1 = o(N)$.
+Note that such an instance is a proper instance of MSS and therefore we have to design an efficient algorithm for the latter problem.
+
+Assuming the the number of processors does not scale with input size, the complexity of sequential generalised Kadane'a algorithm is $O(M^2 N) = O(P N) = O(N)$ for inputs where $M = o(\sqrt{P})$.
+Consequently the algorithm has minimal possible complexity and we do not expect to win too much by parallelisation, i.e. every overhead will non-negligible when compared with total running time. We aim to provide a parallel algorithm for MSS problem with parallel running time $O(N / P)$ and use it as a replacement for sequential Kadane's procedure in the generalised Kadane's algorithm.
+We do not parallelise computations over $\set{(i, k) \| i, k \in \set{1, \dots, M} \land i \leq k}$ this time.
+
+Consider a sequence of numbers $(a_j)_{j \in \set{1, \dots, N}}$, we will split it into $P$ nearly equal-length (continuous) subsequences $(a^i_j)_j$ for $i \in \set{1, \dots, P}$.
+We define four parameters for each subsequence: $T_i$, $P_i$, $S_i$ and $M_i$ -- a total sum of elements, maximum sum prefix, maximum sum suffix and MSS of $(a^i_j)_j$ respectively.
+Whenever we say prefix or suffix we do not limit ourselves to proper prefixes or suffixes.
+We now describe how to find a solution for MSS problem for entire $(a_j)_j$ sequence in $O(P)$ time assuming we already know $T_i$, $P_i$, $S_i$ and $M_i$ for each $i \in \set{1, \dots, P}$.
+
+Consider two consecutive subsequences $(a^i_j)_j$ and $(a^{i+1}_j)_j$.
+Denote by $(a'_j)_j$ a concatenation of these two and $T'$, $P'$, $S'$, $M'$ a set of parameters for the concatenation.
+We can easily prove that:
+\begin{itemize}
+    \item $T' = T_i + T_{i+1}$ -- trivial,
+    \item $P' = \max(P_i, T_i + P_{i+1})$ -- trivial,
+    \item $S' = \max(S_{i+1}, S_i + T_{i+1})$ -- trivial,
+    \item $M' = \max(M_i, M_{i+1}, S_i + P_{i+1})$ -- follows from the fact that maximum subsequence either spans both parts or is fully enclosed in one of them.
+\end{itemize}
+
+This way we have reduced the number of subsequences by one in $O(1)$ time -- inductively we can solve MSS problem for the sequence $(a^i_J)_j$ in $O(P)$ time.
+
+We repeat above procedure $\frac{M (M - 1)}{2}$ times as in generalised Kadane's algorithm for each pair in $\set{(i, k) \| i, k \in \set{1, \dots, M} \land i \leq k}$.
+
+Described algorithm is very simple and clearly scales linearly with the number of processors for $N = \omega(P^2)$ which is a realistic assumption.
+The communication cost can be bounded by $O(M^2 P) = o(P^2)$.
+The concurrent running time equals $O(M^2 (N / P + P))$.
+We will exclude the case, where $M = o(\sqrt{P})$ from further discussion of sequential algorithms for the problem -- we assume that the algorithm we developed in this section is good enough for this degenerate case and we will later show how to merge it with virtually any algorithm for non-degenrate case in order to achieve linear speedup across all (sufficiently large) instance sizes.
+
+\subsection*{Algorithms based on reduction to the Distance Matrix Multiplication}
+
+There exists a wide range of articles describing reductions from the MSA to the Distance Matrix Multiplication (DMM) problem, \cite{TakaokaMSA} contains a short study of more successful attempts.
+Note that each algorithm described in \cite{TakaokaMSA} is based on \emph{divide and conquer} schema, which means that asymptotic analysis of each of them hides a significant constant, which might render the algorithms useless for practical usage despite slightly subcubic\footnote{Throughout this report we will refer to algorithms for MSA problem running in time $o(N^3)$ for inputs of size $N \times N$ as ,,subcubic'', we are not very precise here since the size of an input is equal to $O(N^2)$ in this case. Note that every single referenced article follows this convention.} time complexity.
+The best complexity bound is slightly worse than $O(M^3 / \sqrt{\log{M}})$ for square matrix $M = N$, which means that for $M, N \leq 10^4$ the algorithms are unlikely to be faster than exactly cubic, yet very simple, generalised Kadane's algorithm.
+
+Fortunately worst case analysis is not the only wrench in theorist's toolbox.
+A reduction from MSA to DMM can be further extended.
+For each DMM instance we can create a $3$-partite graph of linear size, such that determining distance product of two arrays is equivalent to finding all pairs shortest paths (APSP) in the graph.
+The reduction itself is very simple, details can be found in \cite{TakaokaMSA}.
+Note that resulting graph has $3N$ vertices for arrays of size $N \times N$ and is dense, which means that we cannot compute distance product of two square matrices in subcubic time in worst-case scenario using this reduction.
+We can however do much better on average...
+
+\subsubsection*{Faster distance matrix multiplication on average}
+
+Takaoka shows in \cite{TakaokaMSA} how to find distance product of two square matrices of size $N \times N$ in $O(N^2 \log{N})$ time with high probability using quite complicated algorithm for solving APSP problem.
+Later improvements in the field allow us to find all pairs shortest paths for a graph having $N$ vertices in $N^2$ time with high probability.
+The most versatile and well examined (to our knowledge) algorithm due Moffat and Takaoka has a complexity of $O(N^2 \log{N})$ for a wide range of distributions \cite{MoffatTakaoka}.
+Takaoka and Hashim recently published \cite{TakaokaHashim} a simplification of the algorithm of Moffat and Takaoka which has all the strengths of the older one and behaves much better in practice due to a smaller constant hidden in asymptotic analysis.
+
+Note that the algorithm described in \cite{TakaokaHashim} computes all pairs shortest paths in two phases:
+\begin{itemize}
+    \item preprocessing phase consists of sorting $N$ arrays each of length not exceeding $N$ -- can be trivially parallelized with linear speed-up when $N \geq P$,
+    \item $N$ (i.e. for each vertex) separate computations of all shortests paths starting at given vertex -- can be parallelized in similar way if $N \geq P$.
+\end{itemize}
+We merge results from all processors in the same way we did for generalised Kadane's algorithm, ensuring linear speed-up and very little communication cost.
+
+\subsection*{Sequential implementations evaluation}
+
+In previous sections we have presented a few sequential algorithms, each of which can be implemented with linear speed-up.
+The sequential processing overhead of parallelization and communication costs are both negligible when compared with the time spent in purely sequential code which occurs in both sequential and parallel implementation.
+These observations lead to a very important conclusion.
+Instead of comparing parallel versions of each algorithm we can equivalently compare sequential versions and select the best one for parallelisation.
+Moreover the process of parallelisation of each algorithm is trivial once we have a highly optimised sequential version.
+
+We have implemented a sequential versions of generalised Kadane's and Takaoka \cite{TakaokaMSA} algorithms.
+The only modifications to the Takaoka algorithm is that we replaced a procedure which computed distance product of two matrices with the one based on reduction to APSP problem.
+To solve APSP problem we use the algorithm described in \cite{TakaokaHashim}.
+This way we can compute a distance product of two matrices of size $N \times M$ in $O((N + M)^2 \log{(N + M)})$ time with high probability and consequently, using the divide and conquer approach described in $\cite{TakaokaMSA}$, we solve MSA problem for an array of size $N \times M$ in $O((N + M)^2 \log^2{(M + N)})$ time with high probability.
+The constant hidden in big-$O$ notation is significant as experimental results show.
+
+\subsubsection*{Methodology of experiments}
+
+Performance comparisons of sequential algorithms were conducted for nearly-square matrices -- as already explained we have only one parallel algorithm for the degenerate case and therefore no need to estimate its performance before implementing parallel version.
+
+To make our predictions as accurate as possible -- we will be choosing sequential algorithm for parallelisation based on these results -- we run sequential programs on the very same hardware as the target platform for parallel implementations.
+
+We have also compared both algorithms on bigger instances using better-suited for sequential processing hardware.
+
+Test instances were generated randomly, since the complexity analysis of modified Takaoka's algorithm is probabilistic, we were testing on five different instances of each size, reports include minimum, maximum and average running times.
+
+\subsubsection*{The results and conclusions}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{c|c|c|c|c|c|}
+$M \times N$ &  &  &  &  &  \\
+\hline
+\end{tabular}
+\caption{Dependence of average, minimum and maximum runtime on input size for sequential implementation of generalised Kadane's algorithm. All running times are given in wallclock seconds. For $N, M < 1000$ tests were conducted on BlueGene/P computer, for $N, M \geq 1000$ a faster hardware was used.}
+\end{table}
+% TODO
+
+We can devise a natural upper bound on the size of input array $MN \leq 10^8$, which is dictated by the assumption that entire array fits in the memory of a single processor.
+Under such bound and presented results we conclude that generalised Kadane's algorithm (despite poorer complexity on average) is superior to Takaoka's algorithm and should be selected for parallelisation.
+
+Note that our experiments do not confirm\footnote{And suddenly we have to establish what does it mean for an experiment to confirm a theory -- we will base our judgement on $3$-sigma test extensively used in physics.} slightly subcubic complexity of Takaoka's algorithm for the instances under consideration.
+Unfortunately in order to distinguish complexities $O(N^2 \log^2{N})$ and $O(N^{3 - \varepsilon})$ one needs to use very large data, even though the latter is asymptotically greater for all $\varepsilon < 1$. 
+
+\section*{Distributed implementation details}
+
+\subsection*{Generalised Kadane's algorithm}
+
+For this section assume $M \leq N$ and $\frac{M (M - 1)}{2} = \omega(P)$.
+
+\begin{algorithm}[h!]
+    \caption{Genralised Kadane's algorithm, pseudocode of the process $p \in \set{1, \dots, P}$}
+    \begin{algorithmic}[1]
+        \State Let $B_{i, j} = \sum_{k = 1}^{i}{A_{k, j}}$ and $B_{0, j} = 0$ for all $i \in \set{1, \dots, M}, j \in \set{1, \dots, N}$. \label{alg1-column-prefixes}
+        \State $d \gets 0$
+        \For{$i \in \set{1, \dots, M}$}
+            \For{$k \in \set{i, \dots, M}$}
+                \State $d \gets d + 1$
+                \If{$d \equiv p - 1 \mod P$}
+                    \State Execute sequential Kadane's algorithm for MSS problem for sequence $a_{j \in \set{1, \dots, N}} = B_{k, j} - B_{i-1, j}$.
+                    \State Record best subsequence's indices $j, l$ together with $i, k$.
+                \EndIf
+            \EndFor
+        \EndFor
+        \If{$p \neq 0$}
+            \State Report the best found subsequence together with corresponding indices $i, k, j, l$ to process $0$.
+        \Else
+            \State Receive partial solutions from all other processes.
+            \State Return the best one among all received and found by this process.
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+It is easy to see that this method of parallelisation yields a correct distributed algorithm for MSA problem.
+Step (\ref{alg1-column-prefixes}) can be implemented by two nested loops in $O(MN)$ time, $B_{i, j}$ is a sum of prefix of length $i$ of column $j$.
+Note that this step can be parallelised using \verb+MPI_Allgather+ routine in the following way: each process computes column prefix sums for a subset of columns (a continuous one) and then all processes exchange computes prefix sums using mentioned method.
+One can easily see that sequential work done by each process does not decrease, in both cases we have to write $O(MN)$ values into memory of each process.
+Our experiments show that additional cost of communication is observable but very low -- less than $3\%$ of running time for inputs of size $4000 \times 4000$.
+We obviously choose the sequential approach so that communication does not become a bottleneck for huge inputs.
+
+Total sequential cost per process is bounded by $O(MN + M^2N / P + P)$, when $P$ is a constant, which is the case in our model, this becomes $O(M^2N / P)$ and we achieve linear scaling.
+
+Note that we dispatch pairs $(i, k)$ between processes using a variable $d$ which adds extra cost of $O(NM)$ additions and modulo equivalence checking.
+The cost is negligible, because $N \geq M >> \sqrt{P}$.
+This method of dispatch is superior -- it ensures that each process has equal amount of work to do.
+
+Communication cost is bounded by $O(P)$ and aggregated into one reverse-broadcast round.
+We implement this step using \verb+MPI_Reduce+ function with \emph{maximum} operand.
+
+A few optimisations were performed to make sure that sequential code is as fast as possible:
+\begin{itemize}
+    \item an array is stored in row-major format and transposed before actual computation if $M > N$,
+    \item column-wise prefix sums are computed in cache friendly way,
+    \item since the array is stored in row-major format the sequential Kadane's algorithm can also be implemented in cache efficient way,
+    \item we do not actually create sequence $(a_j)_{j \in \set{1, \dots, N}}$, the Kadane's algorithm is made aware of the data format instead.
+\end{itemize}
+
+\subsection*{The algorithm for degenerate case}
+
+For this section assume $M \leq N$ and $M = o(\sqrt{P})$.
+
+\begin{algorithm}[h!]
+    \caption{The algorithm for degenerate case, pseudocode of the process $p \in \set{1, \dots, P}$}
+    \begin{algorithmic}[1]
+        \State Let $B_{i, j} = \sum_{k = 1}^{i}{A_{k, j}}$ and $B_{0, j} = 0$ for all $i \in \set{1, \dots, M}, j \in \set{1, \dots, N}$. \label{alg2-column-prefixes}
+        \For{$i \in \set{1, \dots, M}$}
+            \For{$k \in \set{i, \dots, M}$}
+                \State Let $a_{j \in \set{1 + \frac{N}{P} (i - 1), \dots, \frac{N}{P} i}} = B_{k, j} - B_{i-1, j}$ be the subsequence under consideration.
+                \State Execute sequential Kadane's algorithm for MSS problem for the subsequence.
+                \State Greedily find maximum suffix and prefix of the subsequence.
+                \State Compute sum of all elements of the subsequence.
+                \If{$p \neq 0$}
+                    \State Send partial solutions (together with corresponding indices) to process $0$.
+                \Else
+                    \State Receive partial solutions from all other processes.
+                    \State Reduce $O(P)$ partial solutions in arbitrary order and record the maximum subsequence together with indices.
+                \EndIf
+            \EndFor
+        \EndFor
+        \If{$p = 0$}
+            \State Return the best recorded result.
+        \EndIf
+    \end{algorithmic}
+\end{algorithm}
+
+Most of the comments that we have made about the implementation of the generalised Kandane's algorithm apply here as well.
+This time each process computes columns prefix sums for its own subset of columns only in step (\ref{alg2-column-prefixes}).
+The main difference is the reduce step which is executed for each pair $(i, k)$.
+Note that reduction operation described during derivation of the algorithm is \emph{associative}.
+Therefore we can (again) use \verb+MPI_Reduce+ to implement it.
+Note that this time the operator fed into the reduction routine is NOT commutative.
+
+\subsection*{Hybrid algorithm}
+
+Having two algorithms optimised for different types of input instances we would like to determine the best one to use for given input, needless to say that we wish the decision to be computable without non-negligible overhead\footnote{One can always split resources in two halves, run each algorithm using the other half and terminate slower one one the faster finishes. This way we upper bound asymptotic complexity by complexities of both algorithms independently, but such approach is unacceptably theoretical...}.
+
+Assuming that $M \leq N$ our first guess was to select generalised Kadane's algorithm when $\frac{M (M - 1)}{2} \geq P$ and the algorithm for degenerate case otherwise.
+
+We allow ourselves to make the condition less strict and compare $\frac{M (M - 1)}{2}$ with $c \cdot P$ for a constant $c$ close to $1$.
+We empirically select the best value for $c$.
+
+\subsection*{Correctness verification}
+
+Unfortunately, it is hard to test the algorithms end-to-end, i.e. by generating all possible instances of limited sizes.
+Instead, we rely on very aggressive assertions built into the code\footnote{But disabled for performance evaluation.} and cross verification of algorithms on random instances.
+
+Correctness tests compare results obtained by three different algorithms: naiive, generalised Kadane's and our variation of Takaoka's algorithm.
+We run each of them on the same input and compare results.
+
+Moreover, since the parallel program was devised from sequential one using simple transformations of the source code (i.e. the sequential code is almost intact), we can gain additional certainty about correctness of the implementations by comparing results of sequential algorithms on a huge number of random instances.
+It is much more convenient for small instances than testing parallel implementation, mostly because of lower overhead of running the program and because we can easily parallelise cross verification process on \verb+students+ machine with 48 cores.
+
+The full cross verification takes almost $45$ minutes and covers almost $200000$ random instances of sizes not exceeding $M, N \leq 100$.
+
+\section*{Performance evaluation}
+
+Our performance evaluation aims to measure \emph{scalability} of the algorithm with respect to \emph{available resources}, \emph{problem instance} and \emph{resources placement}.
+
+\subsection*{Scalability with respect to problem size and available resources}
+
+In this section we will be investigating dependence of running time on input size and number processes involved in computation of our hybrid algorithm.
+The MPI operation mode set to VN will be held fixed for all tests in this section for reasons described in the next one.
+
+% TODO
+
+\subsection*{Scalability with respect to resources placement}
+
+MPI system allows us to decide how to place workers on actual machines.
+One can choose one of the following modes of operation: SMP (one process per machine), DUAL (two processes per machine) and VN (four processes per machine).
+Since we do not use any other method of parallelisation than distribution, i.e. we do not spawn additional threads inside of MPI processes, we should not see a meaningful difference between the modes of operation.
+
+% TODO
+
+\section*{Discussion of the results and final remarks}
+
+% TODO
+
+%\newpage
+
+\begin{thebibliography}{9}
+    \bibitem{Pearls} J. Bentley \\
+        \newblock ,,Programming Pearls - Algorithm Design Techniques''
+    \bibitem{TakaokaMSA} T. Takaoka \\
+        \newblock ,,Efficient algorithms for the Maximum Subarray Problem by Distance Matrix Multiplication''
+    \bibitem{TakaokaHashim} T. Takaoka, M. Hashim \\
+        \newblock ,,A Simpler Algorithm for the All Pairs Shortest Path Problem with $O(n^2 log{n})$ Expected Time''
+    \bibitem{MoffatTakaoka} K. Mehlhorn, V. Priebe \\
+        \newblock ,,On the All-Pairs Shortest-Path Algorithm of Moffat and Takaoka''
+\end{thebibliography}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document}
+% vim: noet:sw=2:ts=2:tw=160:wrap
