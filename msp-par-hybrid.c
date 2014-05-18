@@ -58,7 +58,6 @@ void join_sub_solution(struct SubSolution* in, struct SubSolution* inout, int*
     len, MPI_Datatype* type) {
   SUPPRESS_UNUSED(type);
   for (int i = 0; i < *len; ++i, ++in, ++inout) {
-    printf("%d %d\n", in->Sl, inout->Pj);
     assert(in->Sl + 1 == inout->Pj);
     /* Maximum subsequence. */
     if (inout->M < in->M) {
