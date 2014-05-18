@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+COUNT=${COUNT:-500}
 MAX_M=4
 MAX_N=10000
 MIN_P=13

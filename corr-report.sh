@@ -10,7 +10,7 @@ fi
 
 errors=0
 for f in "$@"; do
-  [[ `cat "$f"` =~ $RESULT_LINE_REGEX ]] || abort "cannot match output"
+  [[ `cat "$f"` =~ $RESULT_LINE_REGEX ]] || abort "cannot match output $f"
   M=${BASH_REMATCH[1]}
   N=${BASH_REMATCH[2]}
   S=${BASH_REMATCH[3]}
@@ -33,4 +33,5 @@ for f in "$@"; do
   fi
 done
 
+echo "TOTAL ERRORS: $errors"
 exit $errors
