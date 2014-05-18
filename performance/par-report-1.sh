@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-for p in 4 8 16 32; do
-  for c in 1 2 4; do
+for p in 32 16 8 4; do
+  for c in 1 2; do
     for m in 50 1000 4000 8000; do
       for n in 50 1000 4000 8000; do
         if [[ $p -ge 16 || ( $m -le 1000 && $n -le 1000 ) ]]; then

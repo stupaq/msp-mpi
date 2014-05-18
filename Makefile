@@ -2,8 +2,7 @@ ifneq ($(shell hostname), notos)
 CFLAGS		+= -std=c99 -Wall -Wextra
 endif
 
-# TODO(stupaq)
-CFLAGS		+= -O3 # -DNDEBUG
+CFLAGS		+= -O3 -DNDEBUG
 CLINT		:= cpplint --extensions=c,h --filter=-legal/copyright,-whitespace/braces,-whitespace/newline,-whitespace/parens,-runtime/references,-runtime/int,-readability/casting
 
 MPICC		:= mpicc
