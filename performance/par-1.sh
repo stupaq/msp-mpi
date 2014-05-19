@@ -6,6 +6,5 @@ for m in 1000 2000 4000; do
     ./submit-par.sh -m $m -n $n -s 123 $extra
   done
 done
-
 ./perf-report.sh *.err
 cat report.csv

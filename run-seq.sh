@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
+set -e
 
-M=${M:-1000}
-N=${N:-1000}
-S=${S:-123}
-V=
+export S=${S:-123}
 
-while getopts ":m:n:s:v:" opt; do
+while getopts ":m:n:s:v:M:" opt; do
   case $opt in
     m) export M=$OPTARG ;;
     n) export N=$OPTARG ;;
     s) export S=$OPTARG ;;
     v) export V=$OPTARG ;;
+    M) make="$OPTARG" ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
       exit 1 ;;
@@ -26,5 +25,10 @@ if [[ -z "$V" ]]; then
 fi
 
 job_name="MSP-${V}_${M}x${N}_S-${S}_seq_run"
+if [[ -n $make && -e "$make/$job_name.err" ]]; then
+  echo "Report file present, skipping job $job_name"
+  exit 0
+fi
+
 ./msp-seq-${V}.exe ${M} ${N} ${S} 1>$job_name.out 2>$job_name.err
 

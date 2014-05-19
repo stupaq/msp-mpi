@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+set -e
 
-extra=""
-while getopts ":m:n:s:v:q:aA:Q" opt; do
+export S=${S:-123}
+
+while getopts ":m:n:s:v:q:aA:QM:" opt; do
   case $opt in
     m) export M=$OPTARG ;;
     n) export N=$OPTARG ;;
@@ -11,6 +13,7 @@ while getopts ":m:n:s:v:q:aA:Q" opt; do
     a) export A='yes' ;;
     A) extra="$extra $OPTARG" ;;
     Q) quiet='yes' ;;
+    M) make="$OPTARG" ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
       exit 1 ;;
@@ -23,6 +26,12 @@ done
 if [[ -z "$V" ]]; then
   echo "Missing version specification."
   exit 1
+fi
+
+job_name="MSP-${V}_${M}x${N}_S-${S}_seq_fast-${A:-no}"
+if [[ -n $make && -e "$make/$job_name.err" ]]; then
+  echo "Report file present, skipping job $job_name"
+  exit 0
 fi
 
 if [[ -z $quiet ]]; then

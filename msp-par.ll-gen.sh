@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 
-M=${M:-1000}
-N=${N:-1000}
-S=${S:-123}
+M=${M:?}
+N=${N:?}
+S=${S:?}
 Q=${Q:-kdm}
-P=${P:-32}
-C=${C:-4}
+P=${P:?}
+C=${C:?}
 
 case $C in
   1) mode=SMP ;;
-2) mode=DUAL ;;
+  2) mode=DUAL ;;
   4) mode=VN ;;
 esac
 

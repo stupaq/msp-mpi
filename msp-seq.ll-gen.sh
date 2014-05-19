@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-M=${M:-1000}
-N=${N:-1000}
-S=${S:-123}
+M=${M:?}
+N=${N:?}
+S=${S:?}
 Q=${Q:-kdm}
-V=${V:-naive}
+V=${V:?}
 
 job_name="MSP-${V}_${M}x${N}_S-${S}_seq_fast-${A:-no}"
 bg_size=1
