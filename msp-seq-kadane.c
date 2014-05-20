@@ -128,7 +128,8 @@ int main(int argc, char * argv[]) {
     for (int k = i; k <= num_rows; ++k) {
       assert(i > 0 && k >= i);
 #define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
-      long long current = -1;
+      long long current = -1, best_sum = COLUMN_SUM(1);
+      int best_j = 1, best_l = 1;
       for (int j = 1, l = 1; l <= num_columns; ++l) {
         assert(j > 0 && l >= j);
         if (current < 0) {
@@ -136,9 +137,14 @@ int main(int argc, char * argv[]) {
           j = l;
         }
         current += COLUMN_SUM(l);
-        UPDATE_BEST(current, i, j, k, l);
+        if (best_sum < current) {
+          best_sum = current;
+          best_j = j;
+          best_l = l;
+        }
       }
 #undef COLUMN_SUM
+      UPDATE_BEST(best_sum, i, best_j, k, best_l);
     }
   }
 #undef UPDATE_BEST
