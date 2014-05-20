@@ -288,26 +288,24 @@ int main(int argc, char * argv[]) {
           COLUMN_SUM(my_first_column), my_first_column, my_first_column
         };
         /* Forward run of 1D Kadane's algorithm. */
-        long long current = -1, nextDiff = COLUMN_SUM(my_first_column);
+        long long current = -1;
         for (int j = my_first_column, l = j; l <= my_last_column; ++l) {
-          local.T += nextDiff;
           assert(j > 0 && l >= j);
           if (current < 0) {
             current = 0;
             j = l;
           }
-          current += nextDiff;
-          if (l == my_last_column || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
-            if (current > local.M) {
-              local.M = current;
-              local.Mj = j;
-              local.Ml = l;
-            }
-            if (local.T > local.P) {
-              local.P = local.T;
-              local.Pj = my_first_column;
-              local.Pl = l;
-            }
+          local.T += COLUMN_SUM(l);
+          current += COLUMN_SUM(l);
+          if (current > local.M) {
+            local.M = current;
+            local.Mj = j;
+            local.Ml = l;
+          }
+          if (local.T > local.P) {
+            local.P = local.T;
+            local.Pj = my_first_column;
+            local.Pl = l;
           }
           assert(my_first_column <= local.Pj);
           assert(local.Pj <= local.Pl);
@@ -318,15 +316,12 @@ int main(int argc, char * argv[]) {
         }
         /* Maximum suffix sum. */
         current = 0;
-        nextDiff = COLUMN_SUM(my_last_column);
         for (int j = my_last_column; j >= my_first_column; --j) {
-          current += nextDiff;
-          if (j == my_first_column || (nextDiff = COLUMN_SUM(j - 1)) < 0) {
-            if (current > local.S) {
-              local.S = current;
-              local.Sj = j;
-              local.Sl = my_last_column;
-            }
+          current += COLUMN_SUM(j);
+          if (current > local.S) {
+            local.S = current;
+            local.Sj = j;
+            local.Sl = my_last_column;
           }
           assert(my_first_column <= local.Sj);
           assert(local.Sj <= local.Sl);
@@ -359,17 +354,15 @@ int main(int argc, char * argv[]) {
           continue;
         }
 #define COLUMN_SUM(_j_) (MATRIX_ARR(k, _j_) - MATRIX_ARR(i - 1, _j_))
-        long long current = -1, nextDiff = COLUMN_SUM(1);
+        long long current = -1;
         for (int j = 1, l = 1; l <= num_columns; ++l) {
           assert(j > 0 && l >= j);
           if (current < 0) {
             current = 0;
             j = l;
           }
-          current += nextDiff;
-          if (l == num_columns || (nextDiff = COLUMN_SUM(l + 1)) < 0) {
-            UPDATE_BEST(current, i, j, k, l);
-          }
+          current += COLUMN_SUM(l);
+          UPDATE_BEST(current, i, j, k, l);
         }
 #undef COLUMN_SUM
       }
