@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+for p in 1 2 4; do
+  for s in 234 534 6123 8123 913; do
+    for m in `seq 5`; do
+      for n in `seq 5`; do
+        ./run-par.sh -m $m -n $n -s $s -p $p
+      done
+    done
+  done
+done
+./corr-report.sh *.err
+
