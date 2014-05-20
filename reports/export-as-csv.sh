@@ -13,7 +13,7 @@ REPORT_FILE="$dst_dir/seq-khaki-takaoka.csv" \
   ./perf-report.sh $src_dir/MSP-takaoka_*_seq_run.err
 
 for c in 1 2 4; do
-  for p in 1 2 4 8 16 32; do
+  for p in 4 8 16 24 32; do
     filter="$src_dir/MSP_*_P-${p}_C-${c}.err"
     ls $filter &>/dev/null
     if [[ $? -eq 0 ]]; then

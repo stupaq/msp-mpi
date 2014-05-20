@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-for p in 32 16 8 4; do
+for p in 32 24 16 8 4; do
   for c in 1 2 4; do
     for m in 1 2 5000000 10000000 20000000; do
       for n in 1 2 5000000 10000000 20000000; do
