@@ -3,23 +3,23 @@
 src_dir="`dirname $0`"
 dst_dir="`dirname $0`/../exported"
 
-REPORT_FILE="$dst_dir/seq-bluegene-kadane.csv" \
-  ./perf-report.sh $src_dir/MSP-kadane_*_seq_fast-no.err
-REPORT_FILE="$dst_dir/seq-bluegene-takaoka.csv" \
-  ./perf-report.sh $src_dir/MSP-takaoka_*_seq_fast-no.err
-REPORT_FILE="$dst_dir/seq-khaki-kadane.csv" \
-  ./perf-report.sh $src_dir/MSP-kadane_*_seq_run.err
-REPORT_FILE="$dst_dir/seq-khaki-takaoka.csv" \
-  ./perf-report.sh $src_dir/MSP-takaoka_*_seq_run.err
+REPORT_FILE="$dst_dir/seq-kadane-notos.csv" \
+  ./perf-report.sh $src_dir/MSP-kadane_*_seq_fast-*.err
+REPORT_FILE="$dst_dir/seq-takaoka-notos.csv" \
+  ./perf-report.sh $src_dir/MSP-takaoka_*_seq_fast-*.err
+REPORT_FILE="$dst_dir/seq-kadane-labs.csv" \
+  ./perf-report.sh $src_dir/MSP-kadane_*_H-*.err
+REPORT_FILE="$dst_dir/seq-takaoka-labs.csv" \
+  ./perf-report.sh $src_dir/MSP-takaoka_*_H-*.err
 
 for c in 1 2 4; do
-  for p in 4 8 16 24 32; do
-    filter="$src_dir/MSP_*_P-${p}_C-${c}.err"
-    ls $filter &>/dev/null
+  for w in 1 2 4 8 16; do
+    p=$(($w * $c))
+    f="$src_dir/MSP_*_P-${p}_C-${c}.err"
+    ls $f &>/dev/null
     if [[ $? -eq 0 ]]; then
-      echo "Collecting for P=$p C=$c"
-      REPORT_FILE="$dst_dir/par-kadane-P$p-C$c.csv" \
-        ./perf-report.sh $filter
+      REPORT_FILE="$dst_dir/par-hybrid-P$p-C$c.csv" \
+        ./perf-report.sh $f
     else
       echo "Skipping for P=$p C=$c"
     fi
