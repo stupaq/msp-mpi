@@ -1,0 +1,5 @@
+Started at Wed May 21 02:36:47 CEST 2014
+PROFILING:	column_sums	0.0558896388
+PROFILING:	reduction_degenerate	0.0000348988
+PROFILING:	kadanes_2d_degenerate	0.1831779235
+Finished at Wed May 21 02:36:56 CEST 2014
