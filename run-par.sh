@@ -21,7 +21,7 @@ while getopts ":m:n:s:p:M:Q" opt; do
   esac
 done
 
-job_name="MSP_${M}x${N}_S-${S}_H-`hostname`"
+job_name="MSP_${M}x${N}_S-${S}_H-`hostname | cut -c 1-4`"
 if [[ -n $make && -e "$make/$job_name.err" ]]; then
   echo "Report file present, skipping job $job_name"
   exit 0

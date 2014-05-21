@@ -25,7 +25,7 @@ if [[ -z "$V" ]]; then
   exit 1
 fi
 
-job_name="MSP-${V}_${M}x${N}_S-${S}_H-`hostname`"
+job_name="MSP-${V}_${M}x${N}_S-${S}_H-`hostname | cut -c 1-4`"
 if [[ -n $make && -e "$make/$job_name.err" ]]; then
   echo "Report file present, skipping job $job_name"
   exit 0
