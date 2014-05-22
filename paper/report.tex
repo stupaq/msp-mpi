@@ -15,14 +15,14 @@ Throughout this paper we are working in the \emph{Communicating Sequential Proce
 \begin{itemize}
     \item entire input array fits in the memory of a single process (together with arbitrary intermediate data of linear size),\footnote{Note that linear size means $O(M \cdot N)$ for our problem.}
     \item the number of processors is limited $P \leq M \cdot N$ and generally considered to be a constant in input size,
-    \item the only allowed parallelisation technique is \emph{distribution}, i.e. we allow sequential processes to share data through message passing only
+    \item the only allowed parallelization technique is \emph{distribution}, i.e. we allow sequential processes to share data through message passing only
     \item we ignore the problem of distributing input array, assuming that each process starts with a full knowledge of the input.
 \end{itemize}
 
 Careful reader will see that these assumptions are slightly unrealistic, especially the one that prevents us from using shared data concurrency.
 It turns out that developed algorithms can be merged into an efficient algorithm in PRAM model -- an opposite approach to parallelism than the one adopted by MPI.
 
-\section*{Overview of sequential algorithms and methods of parallelisation}
+\section*{Overview of sequential algorithms and methods of parallelization}
 
 The intuition is that for $P < M, N$ we can achieve linear speed-up for practically any reasonable algorithm.
 Therefore we should first select the fastest sequential algorithm and then try to parallelize it efficiently.
@@ -41,7 +41,7 @@ Assuming that maximum subsequence was found to start and end with indices $j \le
 Note that this algorithm can be parallelized with virtually no communication cost for $\frac{M (M - 1)}{2} \geq P$.
 We select a function $f : \set{(i, k) \| i, k \in \set{1, \dots, M} \land i \leq k} \to \set{1, \dots, P}$ and let process number $p$ execute above steps for all pairs $(i, k) \in f^{-1}(p)$.
 We merge results from $P$ processors using parallel reduction, each process contributes optimum over all pairs it has seen and the final result is equal to the maximum over processes' optima.
-Note that we would like $f^{-1}$ to be computable in $O(1)$ time and we require $\exists_{c \in \mathbb{R}_+}{\forall_{x, y \in \set{1, \dots, P}}{||f^{-1}(x)| - |f^{-1}(y)|| \leq c}}$.
+Note that we would like $f^{-1}$ to be computable in $O(|f^{-1}|)$ time and we require $\exists_{c \in \mathbb{R}_+}{\forall_{x, y \in \set{1, \dots, P}}{||f^{-1}(x)| - |f^{-1}(y)|| \leq c}}$.
 The latter condition ensures that we get linear speedup for $P = O(\frac{M^2})$.
 We return to the analysis of this algorithm in the section where we discuss details of our parallel implementation, we will show that we can find a function $f$ that meets the second condition for $c = 1$ (one cannot do better) and can be used for the purpose of splitting computation across processes without increasing sequential running time significantly.
 The function we use does not necessarily meet the first requirement.
@@ -54,9 +54,9 @@ The problematic case of $M = o(\sqrt{P})$, when we no longer can effectively par
 The worst possible instance for previously discussed algorithm is the one where $M = 1 = o(N)$.
 Note that such an instance is a proper instance of MSS and therefore we have to design an efficient algorithm for the latter problem.
 
-Assuming the the number of processors does not scale with input size, the complexity of sequential generalised Kadane'a algorithm is $O(M^2 N) = O(P N) = O(N)$ for inputs where $M = o(\sqrt{P})$.
-Consequently the algorithm has minimal possible complexity and we do not expect to win too much by parallelisation, i.e. every overhead will non-negligible when compared with total running time. We aim to provide a parallel algorithm for MSS problem with parallel running time $O(N / P)$ and use it as a replacement for sequential Kadane's procedure in the generalised Kadane's algorithm.
-We do not parallelise computations over $\set{(i, k) \| i, k \in \set{1, \dots, M} \land i \leq k}$ this time.
+Assuming the number of processors does not scale with input size, the complexity of sequential generalised Kadane'a algorithm is $O(M^2 N) = O(P N) = O(N)$ for inputs where $M = o(\sqrt{P})$.
+Consequently the algorithm has minimal possible complexity and we do not expect to win too much by parallelization, i.e. every overhead will non-negligible when compared with total running time. We aim to provide a parallel algorithm for MSS problem with parallel running time $O(N / P)$ and use it as a replacement for sequential Kadane's procedure in the generalised Kadane's algorithm.
+We do not parallelize computations over $\set{(i, k) \| i, k \in \set{1, \dots, M} \land i \leq k}$ this time.
 
 Consider a sequence of numbers $(a_j)_{j \in \set{1, \dots, N}}$, we will split it into $P$ nearly equal-length (continuous) subsequences $(a^i_j)_j$ for $i \in \set{1, \dots, P}$.
 We define four parameters for each subsequence: $T_i$, $P_i$, $S_i$ and $M_i$ -- a total sum of elements, maximum sum prefix, maximum sum suffix and MSS of $(a^i_j)_j$ respectively.
@@ -80,15 +80,15 @@ We repeat above procedure $\frac{M (M - 1)}{2}$ times as in generalised Kadane's
 Described algorithm is very simple and clearly scales linearly with the number of processors for $N = \omega(P^2)$ which is a realistic assumption.
 The communication cost can be bounded by $O(M^2 P) = o(P^2)$.
 The concurrent running time equals $O(M^2 (N / P + P))$.
-We will exclude the case, where $M = o(\sqrt{P})$ from further discussion of sequential algorithms for the problem -- we assume that the algorithm we developed in this section is good enough for this degenerate case and we will later show how to merge it with virtually any algorithm for non-degenrate case in order to achieve linear speedup across all (sufficiently large) instance sizes.
+We will exclude the case, where $M = o(\sqrt{P})$ from further discussion of sequential algorithms for the problem -- we assume that the algorithm we developed in this section is good enough for this degenerate case and we will later show how to merge it with virtually any algorithm for non-degenerate case in order to achieve linear speedup across all (sufficiently large) instance sizes.
 
 \subsection*{Algorithms based on reduction to the Distance Matrix Multiplication}
 
 There exists a wide range of articles describing reductions from the MSA to the Distance Matrix Multiplication (DMM) problem, \cite{TakaokaMSA} contains a short study of more successful attempts.
-Note that each algorithm described in \cite{TakaokaMSA} is based on \emph{divide and conquer} schema, which means that asymptotic analysis of each of them hides a significant constant, which might render the algorithms useless for practical usage despite slightly subcubic\footnote{Throughout this report we will refer to algorithms for MSA problem running in time $o(N^3)$ for inputs of size $N \times N$ as ,,subcubic'', we are not very precise here since the size of an input is equal to $O(N^2)$ in this case. Note that every single referenced article follows this convention.} time complexity.
+Note that each algorithm described in \cite{TakaokaMSA} is based on \emph{divide and conquer} schema, which means that asymptotic analysis of each of them hides a significant constant, which might render the algorithms useless for practical usage despite slightly subcubic\footnote{Throughout this report we will refer to algorithms for MSA problem running in time $O(N^3)$ for inputs of size $N \times N$ as ,,cubic'', we are not very precise here since the size of an input is equal to $O(N^2)$ in this case. Note that every single referenced article follows this convention.} time complexity.
 The best complexity bound is slightly worse than $O(M^3 / \sqrt{\log{M}})$ for square matrix $M = N$, which means that for $M, N \leq 10^4$ the algorithms are unlikely to be faster than exactly cubic, yet very simple, generalised Kadane's algorithm.
 
-Fortunately worst case analysis is not the only wrench in theorist's toolbox.
+Fortunately, worst case analysis is not the only wrench in theorist's toolbox.
 A reduction from MSA to DMM can be further extended.
 For each DMM instance we can create a $3$-partite graph of linear size, such that determining distance product of two arrays is equivalent to finding all pairs shortest paths (APSP) in the graph.
 The reduction itself is very simple, details can be found in \cite{TakaokaMSA}.
@@ -105,17 +105,17 @@ Takaoka and Hashim recently published \cite{TakaokaHashim} a simplification of t
 Note that the algorithm described in \cite{TakaokaHashim} computes all pairs shortest paths in two phases:
 \begin{itemize}
     \item preprocessing phase consists of sorting $N$ arrays each of length not exceeding $N$ -- can be trivially parallelized with linear speed-up when $N \geq P$,
-    \item $N$ (i.e. for each vertex) separate computations of all shortests paths starting at given vertex -- can be parallelized in similar way if $N \geq P$.
+    \item $N$ (i.e. for each vertex) separate computations of all shortest paths starting at given vertex -- can be parallelized in similar way if $N \geq P$.
 \end{itemize}
 We merge results from all processors in the same way we did for generalised Kadane's algorithm, ensuring linear speed-up and very little communication cost.
 
 \subsection*{Sequential implementations evaluation}
 
 In previous sections we have presented a few sequential algorithms, each of which can be implemented with linear speed-up.
-The sequential processing overhead of parallelisation and communication costs are both negligible when compared with the time spent in purely sequential code which occurs in both sequential and parallel implementation.
+The sequential processing overhead of parallelization and communication costs are both negligible when compared with the time spent in purely sequential code which occurs in both sequential and parallel implementation.
 These observations lead to a very important conclusion.
-Instead of comparing parallel versions of each algorithm we can equivalently compare sequential versions and select the best one for parallelisation.
-Moreover the process of parallelisation of each algorithm is trivial once we have a highly optimised sequential version.
+Instead of comparing parallel versions of each algorithm we can equivalently compare sequential versions and select the best one for parallelization.
+Moreover the process of parallelization of each algorithm is trivial once we have a highly optimised sequential version.
 
 We have implemented a sequential versions of generalised Kadane's and Takaoka \cite{TakaokaMSA} algorithms.
 The only modifications to the Takaoka algorithm is that we replaced a procedure which computed distance product of two matrices with the one based on reduction to APSP problem.
@@ -127,10 +127,10 @@ The constant hidden in big-$O$ notation is significant as experimental results s
 
 Performance comparisons of sequential algorithms were conducted for nearly-square matrices -- as already explained we have only one parallel algorithm for the degenerate case and therefore no need to estimate its performance before implementing parallel version.
 
-To make our predictions as accurate as possible -- we will be choosing sequential algorithm for parallelisation based on these results -- we run sequential programs on the very same hardware as the target platform for parallel implementations.
+To make our predictions as accurate as possible -- we will be choosing sequential algorithm for parallelization based on these results -- we run sequential programs on the very same hardware as the target platform for parallel implementations.
 We have also compared both algorithms on bigger instances using better-suited for sequential processing hardware\footnote{Namely \emph{Intel Xeon CPU E31270} CPU running at $\SI{3.40}{GHz}$.}.
 
-Test instances were generated randomly, since the complexity analysis of modified Takaoka's algorithm is probabilistic, we were testing on five different instances of each size, reports include minimum, maximum and average running times given in wallclock seconds.
+Test instances were generated randomly, since the complexity analysis of modified Takaoka's algorithm is probabilistic, we were testing on five different instances of each size, reports include minimum, maximum and average running times given in wall-clock seconds.
 
 \subsubsection*{The results and conclusions}
 
@@ -223,7 +223,7 @@ $M \times N$ & 1000 & 4000 & 8000 \\
 We can devise a natural upper bound on the size of input array $MN \leq 10^8$, which is dictated by the assumption that entire array fits in the memory of a single processor.
 Note that Takaoka's algorithm runs on input of size $4000 \times 4000$ more than $16$ times longer than generalised Kadane's algorithm on input of size $8000 \times 8000$.
 Given that the latter input size is very close to our upper bound, there is no way for Takaoka's algorithm to outperform generalised Kadane's algorithm for inputs under consideration.
-Under such bound of input size and obtained results we conclude that generalised Kadane's algorithm (despite poorer asymptotical complexity on average) is superior to Takaoka's algorithm and should be selected for parallelisation.
+Under such bound of input size and obtained results we conclude that generalised Kadane's algorithm (despite poorer complexity on average) is superior to Takaoka's algorithm and should be selected for parallelization.
 
 Note that our experiments do not confirm\footnote{And suddenly we have to establish what does it mean for an experiment to confirm a theory -- we will base our judgement on $3$-sigma test extensively used in physics.} slightly subcubic complexity of Takaoka's algorithm for the instances under consideration.
 Unfortunately in order to distinguish complexities $O(N^2 \log^{O(1)}{N})$ and $O(N^{3 - \varepsilon})$ one needs to use very large data, even though the latter is asymptotically greater for all $\varepsilon < 1$.
@@ -234,7 +234,7 @@ Unfortunately in order to distinguish complexities $O(N^2 \log^{O(1)}{N})$ and $
 
 For this section assume $M \leq N$ and $\frac{M (M - 1)}{2} = \omega(P)$.
 
-\begin{algorithm}[h!]
+\begin{algorithm}[h]
     \caption{Genralised Kadane's algorithm, pseudocode of the process $p \in \set{1, \dots, P}$}
     \begin{algorithmic}[1]
         \State Let $B_{i, j} = \sum_{k = 1}^{i}{A_{k, j}}$ and $B_{0, j} = 0$ for all $i \in \set{1, \dots, M}, j \in \set{1, \dots, N}$. \label{alg1-column-prefixes}
@@ -257,9 +257,9 @@ For this section assume $M \leq N$ and $\frac{M (M - 1)}{2} = \omega(P)$.
     \end{algorithmic}
 \end{algorithm}
 
-It is easy to see that this method of parallelisation yields a correct distributed algorithm for MSA problem.
+It is easy to see that this method of parallelization yields a correct distributed algorithm for MSA problem.
 Step (\ref{alg1-column-prefixes}) can be implemented by two nested loops in $O(MN)$ time, $B_{i, j}$ is a sum of prefix of length $i$ of column $j$.
-Note that this step can be parallelised using \verb+MPI_Allgather+ routine in the following way: each process computes column prefix sums for a subset of columns (a continuous one) and then all processes exchange computes prefix sums using mentioned method.
+Note that this step can be parallelized using \verb+MPI_Allgather+ routine in the following way: each process computes column prefix sums for a subset of columns (a continuous one) and then all processes exchange computes prefix sums using mentioned method.
 One can easily see that sequential work done by each process does not decrease, in both cases we have to write $O(MN)$ values into memory of each process.
 Our experiments show that additional cost of communication is observable but still very low.
 We obviously choose the sequential approach so that communication does not become a bottleneck for huge inputs.
@@ -285,7 +285,7 @@ A few optimisations were performed to make sure that sequential code is as fast 
 
 For this section assume $M \leq N$ and $M = o(\sqrt{P})$.
 
-\begin{algorithm}[h!]
+\begin{algorithm}[h]
     \caption{The algorithm for degenerate case, pseudocode of the process $p \in \set{1, \dots, P}$}
     \begin{algorithmic}[1]
         \State Let $B_{i, j} = \sum_{k = 1}^{i}{A_{k, j}}$ and $B_{0, j} = 0$ for all $i \in \set{1, \dots, M}, j \in \set{1, \dots, N}$. \label{alg2-column-prefixes}
@@ -310,7 +310,7 @@ For this section assume $M \leq N$ and $M = o(\sqrt{P})$.
 \end{algorithm}
 
 Most of the comments that we have made about the implementation of the generalised Kandane's algorithm apply here as well.
-This time each process computes columns prefix sums for its own subset of columns only in step (\ref{alg2-column-prefixes}) -- since we only need a part of input data of size $O(MN / P)$, the algorithm perfectly scales in terms of memory as well unlike the generalised Kadane's.
+This time each process computes columns prefix sums for its own subset of columns only in step (\ref{alg2-column-prefixes}) -- since we only need a part of input data of size $O(MN / P)$, the algorithm perfectly scales in terms of memory as well, unlike the generalised Kadane's.
 The main difference is the reduce step which is executed for each pair $(i, k)$.
 Note that reduction operation described during derivation of the algorithm is \emph{associative}.
 Therefore we can (again) use \verb+MPI_Reduce+ to implement it.
@@ -328,14 +328,14 @@ We empirically select the best value for $c$.
 \subsection*{Correctness verification}
 
 Unfortunately, it is hard to test the algorithms end-to-end, i.e. by generating all possible instances of limited sizes.
-Similarly it is not reasonable to rely on random tests only -- consider the probability a matrix of size $50 \times 50$ contains only negative numbers when the number in each cell of the matrix is drawn uniformly from some $0$-symmetric range.
+Similarly it is not reasonable to rely on random tests only -- consider the probability that a matrix of size $50 \times 50$ contains only negative numbers when the number in each cell of the matrix is drawn uniformly from some $0$-symmetric range.
 Instead, we rely on very aggressive assertions built into the code\footnote{But disabled for performance evaluation.} and cross verification of algorithms on a big number of (in some cases random) instances.
 
-Correctness tests compare results obtained by three different algorithms: naiive, generalised Kadane's and our variation of Takaoka's algorithm.
+Correctness tests compare results obtained by three different algorithms: naive, generalised Kadane's and our variation of Takaoka's algorithm.
 We run each of them on the same input and compare results.
 
 Moreover, since the parallel program was devised from sequential one using simple transformations of the source code (i.e. the sequential code is almost intact), we can gain additional certainty about correctness of the implementations by comparing results of sequential algorithms on a huge number of random instances.
-It is much more convenient for small instances than testing parallel implementation, mostly because of lower overhead of running the program and because we can easily parallelise cross verification process on \verb+students+ machine with 48 cores.
+It is much more convenient for small instances than testing parallel implementation, mostly because of lower overhead of running the program and because we can easily parallelize cross verification process on \verb+students+ machine with 48 cores.
 
 The full cross verification takes almost $45$ minutes and covers almost $200000$ instances of sizes not exceeding $M, N \leq 50$.
 We obviously cross-verify every run of the algorithm, including the ones made during performance evaluation.
@@ -348,7 +348,7 @@ Our performance evaluation aims to measure \emph{scalability} of the algorithm w
 
 MPI system allows us to decide how to place workers on actual machines.
 One can choose one of the following modes of operation: SMP (one process per machine), DUAL (two processes per machine) and VN (four processes per machine).
-Since we do not use any other method of parallelisation than distribution, i.e. we do not spawn additional threads inside of MPI processes, we should not see a meaningful difference between the modes of operation.
+Since we do not use any other method of parallelization than distribution, i.e. we do not spawn additional threads inside of MPI processes, we should not see a meaningful difference between the modes of operation.
 
 \begin{minipage}[h]{0.47\textwidth}
 \centering
@@ -393,18 +393,21 @@ $P$ & SMP & DUAL & VN \\
 \end{minipage}
 \vspace{1em}
 
-For non-degenerate case the differencess between modes of operation are negligible.
+For non-degenerate case the differences between modes of operation are negligible.
 We do not benefit from having spare cores on each machine because our implementation is not IO-bounded.
 
 For degenerate case we see a completely different behaviour.
 Firstly, for VN mode we no longer observe linear speedup.
 Secondly, the variance of results for VN mode is disturbingly high, it suggests that these results are affected by scheduler decisions or other source of latencies independent on our algorithm.
-We know no solid explanation to observed phenomena, it is true that the algorithm for degenerate case requires more communication, but at least in theory, the difference is not big enough to saturate network interfaces of a node.
+We know no solid explanation of observed phenomena, it is true that the algorithm for degenerate case requires more communication, but at least in theory, the difference is not big enough to saturate network interfaces of a node.
+It appears that the best model of execution for degenerate case is SMP.
+Luckily we decide which algorithm to use in our hybrid implementation based on sizes of input.
+This information is available at the time of submitting the program for MPI runtime, consequently we can choose the right mode of operation depending on input sizes, i.e. before we schedule the program for execution.
 
 \subsection*{Scalability with respect to problem size and available resources}
 
 In this section we will be investigating dependence of running time on input size and number of processes involved in computation for our hybrid algorithm.
-The MPI operation mode set to VN (for non-degenerate case) or DUAL (for degenerate one) will be held fixed for all tests in this section for reasons described in the section devoted to scalability with respect to the resources placement.
+The MPI operation mode set to VN (for non-degenerate case) or SMP (for degenerate one) will be held fixed for all tests in this section for reasons described in the section devoted to scalability with respect to the resources placement.
 
 It is clear that our algorithm has the same running time for both $M \times N$ and $N \times M$ sized inputs for all $M, N > 0$.
 We will experimentally confirm this observation for single processor and $64$ processors setups.
@@ -463,13 +466,29 @@ $M \times N$ & 250 & 400 & 1000 & 4000 \\
 \vspace{1em}
 
 Running times for different input sizes and numbers of processors together with speed-ups calculated relative to our sequential results and provided reference results can be found in Appendix A.
-We will cover here only a few interesting cases in order to find the limits of scalability of our implementation.
+We will cover only a few interesting cases here in order to characterise the scalability of our implementation.
 
-% TODO
+It is clear that distributing computation across too many processors makes no sense for small instances, i.e. the costs of starting processes and latencies of communication efficiently hide speed-up.
+One can determine work-efficient setup, that is a number of processors and mode of operation that maximises speed-up, for given input size based on tables from Appendix A.
+For each input size under consideration we can achieve at least $96 \%$ of perfect speed-up (equal to the number of processes) by appropriately choosing some $P > 1$ and mode of operation as discussed in one of previous sections.
+
+Figure (\ref{plot:speedup-processes-1}) shows how the speed-up changes with increasing number of processors.
+The perfect (desired) dependency is shown on the same plot as a straight line.
+An anomaly observed for $M = 1, N = 10000000$ can be easily explained as a consequence of time measurement errors caused by short running times.
+
+The results for non-degenerate case show a $16.2 \%$ drop in effectiveness (that is speed-up divided by the number of processors) for $P = 64$.
+Such behaviour is perfectly justifiable, because for $M = N = 1000$ and $P = 64$ the computation takes $\SI{171.1 \pm 1.2}{\milli s}$.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics{./speedup-processes-1.pdf}
+  \caption{Dependency of speed-up with respect to our sequential implementation, as a function of the number of processes. The perfect (desired) dependency is drawn as a straight line.}
+  \label{plot:speedup-processes-1}
+\end{figure}
 
 \subsection*{Communication costs}
 
-To resolve ambiguities, we will call \emph{communication time} the wallclock time of the reduction as measured by the root process.
+To resolve ambiguities, we will call \emph{communication time} the wall-clock time of the reduction as measured by the root process.
 Note that all communication in both branches of the hybrid algorithm is implemented in terms of a reduction, where the root process is the final destination.
 
 For non-degenerate case there is one communication round preceded by a significant amount of computation.
@@ -479,11 +498,11 @@ In fact, total time spent on communication lies within $1$-sigma\footnote{Runnin
 For degenerate case we have to be very careful not to select too many processors for given input size, the following discussion assumes $M = 3 \cdot 10^{7}, N = 1$.
 For $P \geq 32$ we have observed spikes in the communication time, which can differ up to three orders of magnitude between different runs on the same input data.
 For $P \leq 16$ the communication time per round varies from less than $\SI{40}{\micro s}$ up to almost $\SI{95}{\milli s}$ in rather non-deterministic fashion, i.e. the difference of such magnitude can be observed between different runs on the same input and with the same configuration.
-As an example, consider the case of $P = 16$ and DUAL mode, where for five different runs we have obtained results that differ in three orders of magnitude.
+As an example, consider the case of $P = 16$ and DUAL mode in table (\ref{table:communication-cost}), where for five different runs we have obtained results that differ in three orders of magnitude.
 
-\begin{table}
+\begin{table}[h]
 \centering
-\begin{tabular}{c|c|c|c|c|c}
+\begin{tabular}{c|c|c|c|c|c|}
 16, VN   & 0.00836 & 0.00190 & 0.00377 & 0.00401 & 0.09402 \\
 \hline
 16, DUAL & 0.00004 & 0.00004 & 0.00355 & 0.03769 & 0.00004 \\
@@ -497,7 +516,7 @@ As an example, consider the case of $P = 16$ and DUAL mode, where for five diffe
 4,  SMP  & 0.00004 & 0.00269 & 0.00876 & 0.01110 & 0.00716 \\
 \hline
 \end{tabular}
-\caption{Total communication time in wallclock seconds of the root process for $M = 3 \cdot 10^{7}, N = 1$, results from five different runs in each setup. Description column contains the number of processors and operation mode.}
+\caption{Total communication time in wall-clock seconds of the root process for $M = 3 \cdot 10^{7}, N = 1$, results from five different runs in each setup. Description column contains the number of processors and operation mode. \label{table:communication-cost}}
 \end{table}
 
 We have observed that time spent on each communication round does depend on the time of preceding computation, the dependence is hard to characterise accurately due to very high variance of results\footnote{That is $3$-sigma test fails to separate the value from $\SI{0}{s}$.}, however we can safely say that it is an increasing function of time of the computation.
@@ -507,10 +526,14 @@ As a consequence, communication time we are measuring includes the time that one
 
 \section*{Discussion of the results and final remarks}
 
-We have presented an algorithm, which achieves perfect parallelisation in terms of the number of processors for all inputs due to hybrid design.
+We have presented an algorithm, which achieves perfect parallelization in terms of the number of processors for all inputs due to hybrid design.
+
+The algorithm for degenerate case is interesting, because it does not require every processor to know entire input.
+If the input size was not limited by the size of the memory of a single processor, we would use this algorithm for all inputs to achieve perfect scalability with respect to memory requirements.
 
 %\newpage
 
+\FloatBarrier
 \begin{thebibliography}{9}
     \bibitem{Pearls} J. Bentley \\
         \newblock ,,Programming Pearls - Algorithm Design Techniques''
@@ -525,9 +548,9 @@ We have presented an algorithm, which achieves perfect parallelisation in terms 
 \newpage
 \section*{Appendix A}
 
-The following tables present detailed results of our experiments and speed-up calculations with respect to both our sequential and reference results. 
+The following tables present detailed results of our experiments and speed-up calculations with respect to both our sequential and reference results.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
 \begin{tabular}{c|c|c|c|c|c|c|c|c|c|}
 \hline
@@ -569,7 +592,44 @@ $N$ & 250 & 1000 & 4000 & 250 & 1000 & 4000 & 250 & 1000 & 4000 \\
 \caption{Dependence of: maximum and average running times, speedup with respect to our sequential results and reference results (in parentheses) and minimum running times; on the number of processes and input size. Mode of operation is VN.}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[ht]
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|}
+\hline
+$M$ & 1 & 1 & 1 & 10000000 & 20000000 & 30000000 \\
+\hline
+$N$ & 10000000 & 20000000 & 30000000 & 1 & 1 & 1 \\
+\hline
+ & 0.03178 & 0.06987 & 0.09543 & 0.7247 & 1.543 & 2.052 \\
+ & 0.02092 & 0.06129 & 0.06623 & 0.4582 & 0.9762 & 1.069 \\
+64 & 45.27 & 31.18 & 43.62 & 2.07 & 1.96 & 2.7 \\
+ & 0.01651 & 0.04428 & 0.05112 & 0.2286 & 0.06112 & 0.5998 \\
+\hline
+ & 0.03525 & 0.07446 & 0.1108 & 0.577 & 1.453 & 1.734 \\
+ & 0.03235 & 0.06888 & 0.105 & 0.3407 & 0.9955 & 1.22 \\
+32 & 29.28 & 27.75 & 27.51 & 2.78 & 1.92 & 2.37 \\
+ & 0.03127 & 0.06553 & 0.1014 & 0.03903 & 0.4486 & 0.6897 \\
+\hline
+ & 0.06565 & 0.1536 & 0.201 & 0.3542 & 0.208 & 0.2787 \\
+ & 0.06341 & 0.1392 & 0.1913 & 0.1352 & 0.1827 & 0.204 \\
+16 & 14.94 & 13.73 & 15.1 & 7 & 10.46 & 14.16 \\
+ & 0.06017 & 0.1287 & 0.1844 & 0.05898 & 0.1245 & 0.1835 \\
+\hline
+ & 0.1212 & 0.2481 & 0.3753 & 0.513 & 0.2684 & 1.605 \\
+ & 0.1206 & 0.2454 & 0.3713 & 0.2819 & 0.2574 & 0.6429 \\
+8 & 7.85 & 7.79 & 7.78 & 3.36 & 7.43 & 4.49 \\
+ & 0.12 & 0.2406 & 0.3649 & 0.1199 & 0.2405 & 0.3704 \\
+\hline
+ & 0.2422 & 0.4903 & 0.7533 & 0.2419 & 0.4904 & 0.7423 \\
+ & 0.2401 & 0.4859 & 0.7391 & 0.2397 & 0.4853 & 0.7336 \\
+4 & 3.94 & 3.93 & 3.91 & 3.95 & 3.94 & 3.94 \\
+ & 0.238 & 0.4806 & 0.7317 & 0.2379 & 0.4794 & 0.7268 \\
+\hline
+\end{tabular}
+\caption{Dependence of: maximum and average running times, speedup with respect to our sequential results and minimum running times; on the number of processes and input size. Mode of operation is VN. We have no reference results for degenerate case.}
+\end{table}
+
+\begin{table}[ht]
 \centering
 \begin{tabular}{c|c|c|c|c|c|c|c|c|c|}
 \hline
@@ -601,11 +661,54 @@ $N$ & 250 & 1000 & 4000 & 250 & 1000 & 4000 & 250 & 1000 & 4000 \\
  & (12.38) & (19.62) & (24.96) & (30.23) & (16.1) & (21.66) & (50.69) & (38.24) & (17.53) \\
  & 0.03883 & 0.1494 & 0.6384 & 0.1501 & 2.319 & 9.976 & 0.6389 & 9.979 & 158.9 \\
 \hline
+ & 0.0782 & 0.2955 & 1.262 & 0.2981 & 4.665 & 19.92 & 1.266 & 19.95 & 318.1 \\
+ & 0.07633 & 0.2944 & 1.26 & 0.2956 & 4.629 & 19.91 & 1.262 & 19.92 & 317.5 \\
+2 & 1.95 & 1.97 & 1.98 & 1.97 & 1.98 & 1.99 & 1.98 & 1.99 & 2 \\
+ & (6.38) & (10.01) & (12.67) & (15.42) & (8.12) & (10.87) & (25.72) & (19.2) & (8.78) \\
+ & 0.07548 & 0.2928 & 1.258 & 0.2941 & 4.601 & 19.87 & 1.259 & 19.88 & 317.3 \\
+\hline
 \end{tabular}
 \caption{Dependence of: maximum and average running times, speedup with respect to our sequential results and reference results (in parentheses) and minimum running times; on the number of processes and input size. Mode of operation is DUAL.}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[ht]
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|}
+\hline
+$M$ & 1 & 1 & 1 & 10000000 & 20000000 & 30000000 \\
+\hline
+$N$ & 10000000 & 20000000 & 30000000 & 1 & 1 & 1 \\
+\hline
+ & 0.03 & 0.08194 & 0.09216 & 0.04004 & 0.08278 & 0.1266 \\
+ & 0.02915 & 0.06796 & 0.09096 & 0.03253 & 0.07268 & 0.1118 \\
+32 & 32.49 & 28.12 & 31.76 & 29.11 & 26.3 & 25.84 \\
+ & 0.02875 & 0.05885 & 0.08941 & 0.02894 & 0.05884 & 0.08999 \\
+\hline
+ & 0.06078 & 0.14 & 0.2154 & 0.05908 & 0.1422 & 0.2159 \\
+ & 0.05881 & 0.1234 & 0.1873 & 0.05857 & 0.124 & 0.1882 \\
+16 & 16.1 & 15.49 & 15.42 & 16.17 & 15.41 & 15.35 \\
+ & 0.05722 & 0.1176 & 0.178 & 0.05776 & 0.1172 & 0.1776 \\
+\hline
+ & 0.1194 & 0.2417 & 0.3665 & 0.1197 & 0.2417 & 0.3684 \\
+ & 0.1182 & 0.2389 & 0.3637 & 0.1184 & 0.2384 & 0.3637 \\
+8 & 8.01 & 8 & 7.94 & 8 & 8.02 & 7.94 \\
+ & 0.1162 & 0.2351 & 0.3603 & 0.116 & 0.2349 & 0.3603 \\
+\hline
+ & 0.2395 & 0.4861 & 0.7343 & 0.2396 & 0.4868 & 0.7343 \\
+ & 0.2381 & 0.4814 & 0.7277 & 0.2369 & 0.4816 & 0.7255 \\
+4 & 3.98 & 3.97 & 3.97 & 4 & 3.97 & 3.98 \\
+ & 0.2359 & 0.4736 & 0.7245 & 0.2343 & 0.4737 & 0.715 \\
+\hline
+ & 0.4816 & 0.9677 & 1.469 & 0.4812 & 0.9676 & 1.469 \\
+ & 0.4766 & 0.9563 & 1.455 & 0.4766 & 0.9561 & 1.455 \\
+2 & 1.99 & 2 & 1.99 & 1.99 & 2 & 1.99 \\
+ & 0.4686 & 0.935 & 1.437 & 0.4687 & 0.9349 & 1.436 \\
+\hline
+\end{tabular}
+\caption{Dependence of: maximum and average running times, speedup with respect to our sequential results and minimum running times; on the number of processes and input size. Mode of operation is DUAL. We have no reference results for degenerate case.}
+\end{table}
+
+\begin{table}[ht]
 \centering
 \begin{tabular}{c|c|c|c|c|c|c|c|c|c|}
 \hline
@@ -631,11 +734,58 @@ $N$ & 250 & 1000 & 4000 & 250 & 1000 & 4000 & 250 & 1000 & 4000 \\
  & (12.36) & (19.62) & (24.97) & (30.23) & (16.12) & (21.67) & (50.69) & (38.25) & (17.53) \\
  & 0.03892 & 0.1494 & 0.6383 & 0.1501 & 2.317 & 9.972 & 0.6387 & 9.976 & 158.9 \\
 \hline
+ & 0.07815 & 0.2955 & 1.261 & 0.2982 & 4.661 & 19.92 & 1.266 & 19.95 & 318.1 \\
+ & 0.07634 & 0.2944 & 1.259 & 0.2956 & 4.625 & 19.9 & 1.262 & 19.92 & 317.5 \\
+2 & 1.95 & 1.97 & 1.99 & 1.97 & 1.98 & 1.99 & 1.98 & 1.99 & 2 \\
+ & (6.37) & (10.01) & (12.68) & (15.42) & (8.12) & (10.88) & (25.72) & (19.2) & (8.78) \\
+ & 0.07544 & 0.2928 & 1.258 & 0.2941 & 4.598 & 19.87 & 1.259 & 19.88 & 317.3 \\
+\hline
+ & 0.1523 & 0.582 & 2.504 & 0.5872 & 9.245 & 39.73 & 2.512 & 39.79 & 635.1 \\
+ & 0.1486 & 0.5798 & 2.5 & 0.5822 & 9.173 & 39.7 & 2.505 & 39.73 & 634 \\
+1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 & 1 \\
+ & (3.27) & (5.08) & (6.38) & (7.83) & (4.1) & (5.45) & (12.96) & (9.63) & (4.4) \\
+ & 0.1469 & 0.5767 & 2.496 & 0.5793 & 9.119 & 39.63 & 2.498 & 39.64 & 633.5 \\
+\hline
 \end{tabular}
 \caption{Dependence of: maximum and average running times, speedup with respect to our sequential results and reference results (in parentheses) and minimum running times; on the number of processes and input size. Mode of operation is SMP.}
 \end{table}
 
-% TODO
+\begin{table}[ht]
+\centering
+\begin{tabular}{c|c|c|c|c|c|c|}
+\hline
+$M$ & 1 & 1 & 1 & 10000000 & 20000000 & 30000000 \\
+\hline
+$N$ & 10000000 & 20000000 & 30000000 & 1 & 1 & 1 \\
+\hline
+ & 0.05818 & 0.1195 & 0.1812 & 0.05814 & 0.1194 & 0.1812 \\
+ & 0.05758 & 0.1185 & 0.1802 & 0.05758 & 0.1185 & 0.1802 \\
+16 & 16.45 & 16.13 & 16.03 & 16.45 & 16.13 & 16.03 \\
+ & 0.05717 & 0.1178 & 0.1796 & 0.05717 & 0.1179 & 0.1797 \\
+\hline
+ & 0.1201 & 0.2422 & 0.369 & 0.1202 & 0.2422 & 0.3691 \\
+ & 0.1185 & 0.2409 & 0.366 & 0.1185 & 0.2408 & 0.366 \\
+8 & 7.99 & 7.93 & 7.89 & 7.99 & 7.94 & 7.89 \\
+ & 0.1177 & 0.2398 & 0.3617 & 0.1177 & 0.2398 & 0.3617 \\
+\hline
+ & 0.24 & 0.4902 & 0.7317 & 0.24 & 0.4902 & 0.7316 \\
+ & 0.2379 & 0.4809 & 0.7272 & 0.2379 & 0.4809 & 0.7271 \\
+4 & 3.98 & 3.97 & 3.97 & 3.98 & 3.97 & 3.97 \\
+ & 0.2366 & 0.4717 & 0.7192 & 0.2367 & 0.4716 & 0.7193 \\
+\hline
+ & 0.4855 & 0.9725 & 1.476 & 0.4855 & 0.9725 & 1.476 \\
+ & 0.4783 & 0.9576 & 1.458 & 0.4783 & 0.9576 & 1.458 \\
+2 & 1.98 & 2 & 1.98 & 1.98 & 2 & 1.98 \\
+ & 0.4666 & 0.9355 & 1.446 & 0.4666 & 0.9355 & 1.446 \\
+\hline
+ & 0.9625 & 1.943 & 2.955 & 0.9625 & 1.943 & 2.956 \\
+ & 0.9471 & 1.911 & 2.889 & 0.9471 & 1.911 & 2.889 \\
+1 & 1 & 1 & 1 & 1 & 1 & 1 \\
+ & 0.9241 & 1.861 & 2.822 & 0.9241 & 1.861 & 2.822 \\
+\hline
+\end{tabular}
+\caption{Dependence of: maximum and average running times, speedup with respect to our sequential results and minimum running times; on the number of processes and input size. Mode of operation is SMP. We have no reference results for degenerate case.}
+\end{table}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \end{document}

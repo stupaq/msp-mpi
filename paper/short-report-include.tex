@@ -1,0 +1,69 @@
+%% Generic short report include by Mateusz Machalica
+%
+\documentclass[a4paper]{article}
+
+\usepackage[T1]{fontenc}
+% this needs to be loaded before babel-polish
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{ifthen}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{wrapfig}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{siunitx}
+\usepackage{caption}
+\usepackage{placeins}
+
+\renewcommand*{\arraystretch}{1.5}
+
+\newcommand{\makeheader}[3]{
+  \begin{center}
+    \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lr}
+      #2 & \ifthenelse{\equal{#3}{}}{\today ~r.}{#3} \\[4pt]
+      \multicolumn{2}{c}{{\Large #1}} \\[4pt]
+      \hline
+    \end{tabular*}
+    \vspace{4pt}
+  \end{center}
+}
+
+\sisetup{
+  output-decimal-marker = {.},
+  separate-uncertainty = true,
+  output-open-uncertainty = (,
+  output-close-uncertainty = ),
+  uncertainty-separator = \pm
+}
+
+\newcommand{\floor}[1]{ \lfloor #1 \rfloor }
+\newcommand{\ceil}[1]{ \lceil #1 \rceil }
+\newcommand{\floorfrac}[2]{ \floor{\frac{#1}{#2}} }
+\newcommand{\ceilfrac}[2]{ \ceil{\frac{#1}{#2}} }
+\newcommand{\pair}[2]{ \langle #1, #2 \rangle }
+\newcommand{\stirset}[2]{ \{ {#1 \atop #2} \} }
+\newcommand{\stirperm}[2]{ [ {#1 \atop #2} ] }
+\newcommand{\set}[1]{ \{ #1 \} }
+\newcommand{\tuple}[1]{ \langle #1 \rangle }
+\newcommand{\e}[1]{ \mathbb{E}\left[ #1 \right] }
+\newcommand{\odd}[1]{ \operatorname{odd}\left( #1 \right) }
+\newcommand{\sgn}{ \operatorname{sgn} }
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}[lemma]{Theorem}
+\newtheorem{remark}[lemma]{Remark}
+\newtheorem{problem}[lemma]{Problem}
+\newenvironment{solution}{\begin{proof}[Solution]}{\end{proof}}
+
+\algblock{ForParallel}{EndForParallel}
+\algrenewtext{ForParallel}[1]{\textbf{for} #1 \textbf{do in parallel}}
+\algrenewtext{EndForParallel}{\textbf{end for}}
+
+% vim: noet:sw=2:ts=2

@@ -34,4 +34,11 @@ implementation of `<name>` version of the algorithm.
 I strongly suggest you to rely on `reports/export-as-csv.sh` script and look
 for CSV files with performance evaluation results under `exported/` directory.
 
+Extras
+------
+We have implemented sequential version of Takaoka's algorithm using $O(n^2
+\log{n})$ expected time APSP algorithm due Moffat and Takaoka.
+See comments in `msp-seq-takaoka.c`, `minsum.h` and `ranking.h` for explanation
+of the algorithm.
+
 Copyright (c) 2014 Mateusz Machalica
