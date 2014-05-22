@@ -4,6 +4,7 @@ Implementation of Maximum Subarray Problem algorithms in MPI
 Introduction
 ------------
 Throughout the code and instrumentation tools we agree on the following conventions
+
 * let M be the number of rows of input matrix
 * let N be the number of columns of input matrix
 * let S be the seed passed to matrix input library
