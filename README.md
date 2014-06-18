@@ -35,6 +35,17 @@ implementation of `<name>` version of the algorithm.
 I strongly suggest you to rely on `reports/export-as-csv.sh` script and look
 for CSV files with performance evaluation results under `exported/` directory.
 
+Notes on matrix generation library
+----------------------------------
+Attached matrix generator is of very low quality.
+Performance evaluation described in the report was conducted with [high-quality
+generator][1].
+Note that the interface of the high-quality generator perfectly matches the one
+in `matgen.h`.
+You can safely put `matgen.h` and `matgen-mt.c` files from the package in the
+place of existing generator files and compile the code with `make
+MATGEN_TYPE=matgen-mt`.
+
 Extras
 ------
 We have implemented sequential version of Takaoka's algorithm using $O(n^2
@@ -43,3 +54,6 @@ See comments in `msp-seq-takaoka.c`, `minsum.h` and `ranking.h` for explanation
 of the algorithm.
 
 Copyright (c) 2014 Mateusz Machalica
+
+[1]: http://www.mimuw.edu.pl/~iwanicki/courses/cp/2013/assignment/template.tgz "Matrix generation library by Konrad Iwanicki"
+

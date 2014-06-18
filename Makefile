@@ -10,9 +10,8 @@ MPICC		:= mpicc
 HEADERS		:= $(wildcard *.h)
 SEQUENTIAL	?= $(wildcard msp-seq*.c)
 PARALLEL	?= $(wildcard msp-par*.c)
-NOLINT		?= matgen.h matgen-mt.c msp-seq-naive.c
 
-MATGEN_TYPE	?= matgen-mt
+MATGEN_TYPE	?= matgen-cr
 MATGEN_FILE	:= $(MATGEN_TYPE).o
 
 all: $(SEQUENTIAL:.c=.exe) $(PARALLEL:.c=.exe)
@@ -27,7 +26,7 @@ clean:
 	rm -f *.o *core *~ *.out *.err *.exe
 
 lint:
-	@$(CLINT) $(filter-out $(NOLINT), $(wildcard *.*))
+	@$(CLINT) $(wildcard *.*)
 
 todo:
 	@grep -nrIe "\(TODO\|FIXME\)" --exclude-dir=.git --exclude=Makefile . || true
